@@ -13,8 +13,9 @@ class OnboardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.appColors;
     return Scaffold(
-      backgroundColor: AppTheme.bgPrimary,
+      backgroundColor: c.bgPrimary,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -40,33 +41,33 @@ class OnboardingScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             alignment: Alignment.center,
-                            child: const Text(
+                            child: Text(
                               '3ML',
                               style: TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
-                                color: AppTheme.bgPrimary,
+                                color: c.bgPrimary,
                                 letterSpacing: -1,
                               ),
                             ),
                           ),
                           const SizedBox(height: 28),
-                          const Text(
+                          Text(
                             'Make My\nMoney Last',
                             style: TextStyle(
                               fontSize: 42,
                               fontWeight: FontWeight.w900,
-                              color: AppTheme.textPrimary,
+                              color: c.textPrimary,
                               height: 1.1,
                               letterSpacing: -1.5,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          const Text(
+                          Text(
                             'One number. Every day.\nHow much can you safely spend today?',
                             style: TextStyle(
                               fontSize: 17,
-                              color: AppTheme.textSecondary,
+                              color: c.textSecondary,
                               height: 1.5,
                             ),
                           ),
@@ -105,8 +106,8 @@ class OnboardingScreen extends StatelessWidget {
                               width: double.infinity,
                               child: OutlinedButton(
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppTheme.textPrimary,
-                                  side: const BorderSide(color: AppTheme.border),
+                                  foregroundColor: c.textPrimary,
+                                  side: BorderSide(color: c.border),
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(
@@ -183,6 +184,7 @@ class _FeatureRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.appColors;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -191,9 +193,9 @@ class _FeatureRow extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
-              color: AppTheme.textSecondary,
+              color: c.textSecondary,
             ),
           ),
         ),

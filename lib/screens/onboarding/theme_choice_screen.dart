@@ -9,8 +9,9 @@ class ThemeChoiceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.appColors;
     return Scaffold(
-      backgroundColor: AppTheme.bgPrimary,
+      backgroundColor: c.bgPrimary,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -42,21 +43,21 @@ class ThemeChoiceScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      const Text(
+                      Text(
                         'Choose your look',
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
-                          color: AppTheme.textPrimary,
+                          color: c.textPrimary,
                           letterSpacing: -1,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         'You can change this anytime in Settings.',
                         style: TextStyle(
                           fontSize: 16,
-                          color: AppTheme.textSecondary,
+                          color: c.textSecondary,
                           height: 1.45,
                         ),
                       ),
@@ -110,6 +111,7 @@ class _ThemeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.appColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -118,19 +120,19 @@ class _ThemeCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.symmetric(vertical: 28),
           decoration: BoxDecoration(
-            color: AppTheme.bgCard,
+            color: c.bgCard,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: c.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 40, color: AppTheme.textPrimary),
+              Icon(icon, size: 40, color: c.textPrimary),
               const SizedBox(height: 12),
               Text(
                 label,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
+                style: TextStyle(
+                  color: c.textPrimary,
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                 ),
