@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'app_theme.dart';
 import 'providers/app_provider.dart';
 import 'screens/onboarding/onboarding_screen.dart';
-import 'screens/onboarding/theme_choice_screen.dart';
 import 'screens/main_shell.dart';
 
 void main() async {
@@ -53,9 +52,6 @@ class App3ML extends StatelessWidget {
             builder: (context) {
               if (!provider.isInitialized) {
                 return const _SplashScreen();
-              }
-              if (provider.needsThemeChoice) {
-                return const ThemeChoiceScreen();
               }
               if (!provider.isOnboarded) {
                 return const OnboardingScreen();

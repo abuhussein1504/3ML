@@ -81,15 +81,20 @@ class _SetupScreenState extends State<SetupScreen> {
       name: _nameCtrl.text.trim(),
       salary: (double.tryParse(_salaryCtrl.text.trim()) ?? 0).toDouble(),
       payday: _selectedPayday,
-      fixedBills: (double.tryParse(_billsCtrl.text.trim().isEmpty ? '0' : _billsCtrl.text.trim()) ?? 0.0).toDouble(),
-      savingsGoal: (double.tryParse(_savingsCtrl.text.trim().isEmpty ? '0' : _savingsCtrl.text.trim()) ?? 0.0).toDouble(),
+      fixedBills: (double.tryParse(_billsCtrl.text.trim().isEmpty
+                  ? '0'
+                  : _billsCtrl.text.trim()) ??
+              0.0)
+          .toDouble(),
+      savingsGoal: (double.tryParse(_savingsCtrl.text.trim().isEmpty
+                  ? '0'
+                  : _savingsCtrl.text.trim()) ??
+              0.0)
+          .toDouble(),
       currency: _currency,
     );
     await context.read<AppProvider>().completeOnboarding(profile);
     if (!mounted) return;
-    // Use pushAndRemoveUntil so navigation works regardless of Consumer rebuild timing.
-    // popUntil(isFirst) is unreliable here because notifyListeners() schedules a
-    // rebuild for the NEXT frame, so the first route may still show OnboardingScreen.
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const MainShell()),
       (route) => false,
@@ -99,55 +104,57 @@ class _SetupScreenState extends State<SetupScreen> {
   bool get _canProceed {
     if (_isLoading) return false;
     switch (_step) {
-      case 0: return _nameCtrl.text.trim().isNotEmpty;
+      case 0:
+        return _nameCtrl.text.trim().isNotEmpty;
       case 1:
         final v = double.tryParse(_salaryCtrl.text.trim());
         return v != null && v > 0;
-      case 2: return true; // payday always valid
-      case 3: return true; // bills can be 0 or empty
-      case 4: return true; // savings can be 0 or empty
-      default: return true;
+      case 2:
+        return true;
+      case 3:
+        return true;
+      case 4:
+        return true;
+      default:
+        return true;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = context.appColors;
-    final elevatedFg = Theme.of(context).brightness == Brightness.dark
-        ? c.bgPrimary
-        : Colors.white;
     return Scaffold(
-      backgroundColor: c.bgPrimary,
-      resizeToAvoidBottomInset: true,
+      backgroundColor: AppTheme.bgPrimary,
       body: SafeArea(
         child: Column(
           children: [
             // Progress bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: _back,
-                    icon: Icon(Icons.arrow_back_ios_new_rounded,
-                        color: c.textSecondary, size: 18),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: AppTheme.textSecondary, size: 18),
                   ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: (_step + 1) / 5,
-                        backgroundColor: c.bgCard,
-                        valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+                        backgroundColor: AppTheme.bgCard,
+                        valueColor:
+                            const AlwaysStoppedAnimation(AppTheme.primary),
                         minHeight: 4,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 16),
                   Text(
                     '${_step + 1}/5',
-                    style: TextStyle(
-                        color: c.textMuted, fontSize: 12),
+                    style: const TextStyle(
+                        color: AppTheme.textMuted, fontSize: 12),
                   ),
                 ],
               ),
@@ -165,9 +172,8 @@ class _SetupScreenState extends State<SetupScreen> {
                       controller: _nameCtrl,
                       autofocus: true,
                       textCapitalization: TextCapitalization.words,
-                      style: TextStyle(color: c.textPrimary),
-                      decoration:
-                          const InputDecoration(hintText: 'e.g. Ahmed'),
+                      style: const TextStyle(color: AppTheme.textPrimary),
+                      decoration: const InputDecoration(hintText: 'e.g. Ahmed'),
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -178,8 +184,8 @@ class _SetupScreenState extends State<SetupScreen> {
                       children: [
                         DropdownButtonFormField<String>(
                           initialValue: _currency,
-                          dropdownColor: c.bgCard,
-                          style: TextStyle(color: c.textPrimary),
+                          dropdownColor: AppTheme.bgCard,
+                          style: const TextStyle(color: AppTheme.textPrimary),
                           decoration:
                               const InputDecoration(labelText: 'Currency'),
                           items: _currencies
@@ -195,12 +201,12 @@ class _SetupScreenState extends State<SetupScreen> {
                           controller: _salaryCtrl,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
-                          style: TextStyle(color: c.textPrimary),
+                          style: const TextStyle(color: AppTheme.textPrimary),
                           decoration: InputDecoration(
                             hintText: 'e.g. 12000',
                             prefixText: '$_currency  ',
                             prefixStyle:
-                                TextStyle(color: c.textMuted),
+                                const TextStyle(color: AppTheme.textMuted),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -218,34 +224,32 @@ class _SetupScreenState extends State<SetupScreen> {
                   _StepPage(
                     title: "Fixed monthly bills?",
                     subtitle:
-                        "Rent, subscriptions, loan payments — things you always pay. Enter 0 if none.",
+                        "Rent, subscriptions, loan payments — things you always pay. You can skip this part.",
                     child: TextField(
                       controller: _billsCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
-                      style: TextStyle(color: c.textPrimary),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: AppTheme.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'e.g. 3000',
                         prefixText: '$_currency  ',
-                        prefixStyle:
-                            TextStyle(color: c.textMuted),
+                        prefixStyle: const TextStyle(color: AppTheme.textMuted),
                       ),
                     ),
                   ),
                   _StepPage(
                     title: "Monthly savings goal?",
                     subtitle:
-                        "How much do you want to set aside each month? Enter 0 to skip.",
+                        "How much do you want to set aside each month? You can skip this part.",
                     child: TextField(
                       controller: _savingsCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
-                      style: TextStyle(color: c.textPrimary),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: AppTheme.textPrimary),
                       decoration: InputDecoration(
                         hintText: 'e.g. 1000',
                         prefixText: '$_currency  ',
-                        prefixStyle:
-                            TextStyle(color: c.textMuted),
+                        prefixStyle: const TextStyle(color: AppTheme.textMuted),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -253,25 +257,24 @@ class _SetupScreenState extends State<SetupScreen> {
                 ],
               ),
             ),
-            // CTA (body height already shrinks above keyboard via resizeToAvoidBottomInset)
+            // CTA
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _canProceed ? _next : null,
                   child: _isLoading
-                      ? SizedBox(
+                      ? const SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor:
-                                AlwaysStoppedAnimation(elevatedFg),
+                                AlwaysStoppedAnimation(AppTheme.bgPrimary),
                           ),
                         )
-                      : Text(_step == 4 ? "Let's Go! 🚀" : 'Continue'),
+                      : Text(_step == 4 ? "Let's Go!" : 'Continue'),
                 ),
               ),
             ),
@@ -295,29 +298,20 @@ class _StepPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.appColors;
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return SingleChildScrollView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: EdgeInsets.only(bottom: bottomInset + 16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 28),
-            Text(title,
-                style: Theme.of(context).textTheme.headlineLarge),
-            const SizedBox(height: 10),
-            Text(subtitle,
-                style: TextStyle(
-                    color: c.textSecondary,
-                    fontSize: 15,
-                    height: 1.5)),
-            const SizedBox(height: 28),
-            child,
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 40),
+          Text(title, style: Theme.of(context).textTheme.headlineLarge),
+          const SizedBox(height: 10),
+          Text(subtitle,
+              style: const TextStyle(
+                  color: AppTheme.textSecondary, fontSize: 15, height: 1.5)),
+          const SizedBox(height: 36),
+          child,
+        ],
       ),
     );
   }
@@ -330,16 +324,12 @@ class _PaydayPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.appColors;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: List.generate(31, (i) {
+      children: List.generate(28, (i) {
         final day = i + 1;
         final isSelected = day == selected;
-        final onPrimary = Theme.of(context).brightness == Brightness.dark
-            ? c.bgPrimary
-            : Colors.white;
         return GestureDetector(
           onTap: () => onChanged(day),
           child: AnimatedContainer(
@@ -347,19 +337,18 @@ class _PaydayPicker extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primary : c.bgCard,
+              color: isSelected ? AppTheme.primary : AppTheme.bgCard,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? AppTheme.primary : c.border,
+                color: isSelected ? AppTheme.primary : AppTheme.border,
               ),
             ),
             alignment: Alignment.center,
             child: Text(
               '$day',
               style: TextStyle(
-                color: isSelected ? onPrimary : c.textSecondary,
-                fontWeight:
-                    isSelected ? FontWeight.w700 : FontWeight.w400,
+                color: isSelected ? AppTheme.bgPrimary : AppTheme.textSecondary,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                 fontSize: 14,
               ),
             ),

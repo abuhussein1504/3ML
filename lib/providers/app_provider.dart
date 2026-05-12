@@ -91,7 +91,7 @@ class AppProvider extends ChangeNotifier {
   bool _showSuggestions = true;
   List<Map<String, dynamic>> _suggestions = [];
   ThemeMode _themeMode = ThemeMode.dark;
-  /// After install, user picks light/dark once before budget setup ([needsThemeChoice]).
+  /// After install, user picks light/dark on the combined welcome screen ([needsThemeChoice]).
   bool _themeFirstChoiceDone = false;
 
   /// Last coach-mode tip shown after an expense; chat mode sends this to `/chat` for continuity.
@@ -174,7 +174,7 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  /// First-launch theme gate (see [needsThemeChoice]).
+  /// Persists theme from the welcome screen (see [needsThemeChoice]).
   Future<void> completeThemeSelection(ThemeMode mode) async {
     _themeMode = mode;
     _themeFirstChoiceDone = true;
