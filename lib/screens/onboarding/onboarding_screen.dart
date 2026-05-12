@@ -63,9 +63,11 @@ class OnboardingScreen extends StatelessWidget {
               ),
               const Spacer(flex: 3),
               // Features
-              const _FeatureRow(icon: '💬', text: 'Just type what you spent — no forms'),
+              const _FeatureRow(
+                  icon: '💬', text: 'Just type what you spent — no forms'),
               const SizedBox(height: 14),
-              const _FeatureRow(icon: '🔒', text: 'Fully private, no bank linking'),
+              const _FeatureRow(
+                  icon: '🔒', text: 'Fully private, no bank linking'),
               const SizedBox(height: 14),
               const _FeatureRow(icon: '📊', text: 'Instant smart budget math'),
               const Spacer(flex: 2),
@@ -136,9 +138,9 @@ class OnboardingScreen extends StatelessWidget {
     }
 
     await context.read<AppProvider>().restoreFromBackup(
-      recovery.profile,
-      recovery.transactions,
-    );
+          recovery.profile,
+          recovery.transactions,
+        );
 
     if (context.mounted) {
       Navigator.of(context).pushAndRemoveUntil(
