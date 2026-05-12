@@ -114,12 +114,13 @@ class _SetupScreenState extends State<SetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.bgPrimary,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
             // Progress bar
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+              padding: const EdgeInsets.fromLTRB(8, 12, 16, 0),
               child: Row(
                 children: [
                   IconButton(
@@ -127,7 +128,6 @@ class _SetupScreenState extends State<SetupScreen> {
                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                         color: AppTheme.textSecondary, size: 18),
                   ),
-                  const SizedBox(width: 8),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(4),
@@ -139,7 +139,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   Text(
                     '${_step + 1}/5',
                     style: const TextStyle(
@@ -249,10 +249,10 @@ class _SetupScreenState extends State<SetupScreen> {
                 ],
               ),
             ),
-            // CTA
+            // CTA (body height already shrinks above keyboard via resizeToAvoidBottomInset)
             Padding(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -291,21 +291,28 @@ class _StepPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 40),
-          Text(title,
-              style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 10),
-          Text(subtitle,
-              style: const TextStyle(
-                  color: AppTheme.textSecondary, fontSize: 15, height: 1.5)),
-          const SizedBox(height: 36),
-          child,
-        ],
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: EdgeInsets.only(bottom: bottomInset + 16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 28),
+            Text(title,
+                style: Theme.of(context).textTheme.headlineLarge),
+            const SizedBox(height: 10),
+            Text(subtitle,
+                style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 15,
+                    height: 1.5)),
+            const SizedBox(height: 28),
+            child,
+          ],
+        ),
       ),
     );
   }
