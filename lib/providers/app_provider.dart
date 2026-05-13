@@ -285,11 +285,7 @@ class AppProvider extends ChangeNotifier {
 
   void _recalcBudget() {
     if (_profile != null) {
-      _budget = BudgetService.calculate(
-        _profile!,
-        _transactions,
-        bufferAmount: _buffer.amount,
-      );
+      _budget = BudgetService.calculate(_profile!, _transactions);
     }
     unawaited(_persistTodayStsSnapshot());
   }
@@ -348,28 +344,21 @@ class AppProvider extends ChangeNotifier {
         .fold<double>(0.0, (s, t) => s + (t.amount ?? 0.0));
   }
 
-  /// For a completed calendar day: unspent slice of safe-to-spend (see stored snapshot) → buffer.
-  /// Uses [bufferAmount] 0 for fallback STS so current buffer balance does not shrink the baseline.
-  double _unspentForCalendarDay(DateTime day, SharedPreferences prefs) {
+  /// End-of-day buffer: only when that day's safe-to-spend rate was > 0, credit unspent STS
+  /// (`max(0, sts - spent)`). If STS was 0, nothing rolls into buffer. Next day's STS is
+  /// `remaining / days` from [BudgetService.calculate] after spending updates.
+  double _eodBufferCreditForCalendarDay(DateTime day, SharedPreferences prefs) {
     if (_profile == null) return 0.0;
     final iso = _isoDate(day);
     final snap = double.tryParse(prefs.getString('sts_snap_$iso') ?? '');
-    final double sts;
-    if (snap != null) {
-      sts = snap;
-    } else {
-      final b = BudgetService.calculate(
-        _profile!,
-        _transactions,
-        bufferAmount: 0.0,
-      );
-      sts = b.safeToSpend;
-    }
+    // Only credit days where we recorded that day’s STS while the app ran.
+    // No fallback to today’s pace — that made first-open buffer ≈ safe-to-spend.
+    if (snap == null || snap <= 0) return 0.0;
     final spent = _sumExpensesOnCalendarDay(day);
-    return math.max(0.0, sts - spent);
+    return math.max(0.0, snap - spent);
   }
 
-  /// Credits buffer for every **fully finished** local day since last run (user was under daily pace).
+  /// Credits buffer for every **fully finished** local day since last open (EOD rule above).
   Future<void> _applyBufferCreditsForCompletedCalendarDays(
       SharedPreferences prefs) async {
     if (_profile == null) return;
@@ -377,8 +366,9 @@ class AppProvider extends ChangeNotifier {
     final yesterday = today.subtract(const Duration(days: 1));
     var nextStr = prefs.getString(_kBufferNextCreditDay);
     if (nextStr == null || nextStr.trim().isEmpty) {
-      // First run: at least try yesterday (storing `today` skipped all past days forever).
-      nextStr = _isoDate(yesterday);
+      // First install / open: start at today so we do not credit “yesterday” with no snapshots.
+      // After each local day ends, the cursor advances and credits use sts_snap_* only.
+      nextStr = _isoDate(today);
       await prefs.setString(_kBufferNextCreditDay, nextStr);
     }
     var parsedNext = DateTime.tryParse(nextStr.trim());
@@ -390,7 +380,7 @@ class AppProvider extends ChangeNotifier {
     var d = _dateOnly(parsedNext ?? yesterday);
     var updated = false;
     while (!d.isAfter(yesterday)) {
-      final add = _unspentForCalendarDay(d, prefs);
+      final add = _eodBufferCreditForCalendarDay(d, prefs);
       if (add > 0) {
         _buffer = _buffer.copyWith(
           amount: _buffer.amount + add,

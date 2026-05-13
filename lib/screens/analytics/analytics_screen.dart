@@ -169,8 +169,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                               ),
                             ),
                             const Spacer(),
-                            Text('See all',
-                                style: const TextStyle(
+                            const Text('See all',
+                                style: TextStyle(
                                     color: AppTheme.primary, fontSize: 12)),
                             const SizedBox(width: 4),
                             const Icon(Icons.chevron_right_rounded,
@@ -234,14 +234,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                                                   context.appColors.textPrimary,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w800,
-                                            ),
-                                          ),
-                                          Text(
-                                            'tap outside slice to clear',
-                                            style: TextStyle(
-                                              color: context
-                                                  .appColors.textMuted,
-                                              fontSize: 9,
                                             ),
                                           ),
                                         ],

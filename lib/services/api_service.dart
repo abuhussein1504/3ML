@@ -39,8 +39,8 @@ class ApiService {
   }
 
   // ── Remote Colab / ngrok — set full `https://….ngrok-free.app` URLs here ───
-  String _eventParserUrl = 'https://8fdb-34-125-144-45.ngrok-free.app';
-  String _coachChatUrl = 'https://2be5-34-125-136-34.ngrok-free.app';
+  String _eventParserUrl = 'https://9d31-34-21-153-46.ngrok-free.app';
+  String _coachChatUrl = 'https://d238-34-125-76-14.ngrok-free.app';
 
   void setEventParserUrl(String url) =>
       _eventParserUrl = url.trim().replaceAll(RegExp(r'/+$'), '');

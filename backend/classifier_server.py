@@ -82,13 +82,6 @@ def health():
 
 @app.post("/classify")
 def classify(req: ClassifyRequest):
-    """
-    Classify free text as transaction vs conversation for routing in the Flutter app.
-
-    Response keys match ApiService.classifyInput:
-      label: "transaction" | "conversation"
-      confidence: float 0–1
-    """
     assert clf_tokenizer is not None and clf_model is not None
 
     inputs = clf_tokenizer(
@@ -119,7 +112,4 @@ def classify(req: ClassifyRequest):
 
 if __name__ == "__main__":
     import uvicorn
-
-    # Pass the app object so this file works whether you run it as
-    # `python classifier_server.py` (from backend/) or `python backend/classifier_server.py`.
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

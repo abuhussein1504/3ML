@@ -145,23 +145,6 @@ class SafeToSpendCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
-              // Pace vs even split across the full pay period
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    budget.safetyBuffer >= 0
-                        ? Icons.arrow_upward_rounded
-                        : Icons.arrow_downward_rounded,
-                    color: budget.safetyBuffer >= 0
-                        ? AppTheme.primary
-                        : AppTheme.danger,
-                    size: 14,
-                  ),
-                ],
-              ),
-
               const SizedBox(height: 12),
               _BufferRow(
                 bufferAmount: bufferAmt,
@@ -178,11 +161,7 @@ class SafeToSpendCard extends StatelessWidget {
 
   void _showJustification(BuildContext context) {
     final c = context.appColors;
-    final lines = BudgetService.justify(
-      profile,
-      budget,
-      bufferAmount: context.read<AppProvider>().buffer.amount,
-    );
+    final lines = BudgetService.justify(profile, budget);
 
     showModalBottomSheet(
       context: context,
@@ -194,7 +173,7 @@ class SafeToSpendCard extends StatelessWidget {
       isScrollControlled: true,
       builder: (_) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.6,
+        initialChildSize: 0.72,
         maxChildSize: 0.9,
         builder: (_, sc) => Column(
           children: [
@@ -259,10 +238,14 @@ class SafeToSpendCard extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
+                          flex: 3,
                           child: Text(
                             line.label,
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color:
                                   line.bold ? c.textPrimary : c.textSecondary,
@@ -274,9 +257,11 @@ class SafeToSpendCard extends StatelessWidget {
                         ),
                         if (line.value.isNotEmpty)
                           Flexible(
+                            flex: 2,
                             child: Text(
                               line.value,
                               textAlign: TextAlign.end,
+                              softWrap: true,
                               style: TextStyle(
                                 color: line.bold
                                     ? AppTheme.primary
@@ -287,7 +272,7 @@ class SafeToSpendCard extends StatelessWidget {
                                     : FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
-                              maxLines: 3,
+                              maxLines: 4,
                             ),
                           ),
                       ],
@@ -418,9 +403,10 @@ class _BufferRow extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Buffer is built automatically: if you spend less than your daily pace, '
-              'the difference is credited here the next morning. It stacks with today’s pace '
-              'on the card above. You can still adjust the number manually.',
+              'Buffer is credited after each calendar day ends: if that day\'s safe-to-spend '
+              'rate was above zero, anything you did not spend of that allowance is added here. '
+              'Safe-to-spend is then recalculated as remaining budget divided by days until payday. '
+              'You can still adjust the buffer manually.',
               style:
                   TextStyle(color: c.textSecondary, fontSize: 13, height: 1.5),
             ),

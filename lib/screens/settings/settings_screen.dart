@@ -481,12 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             '• Transactions are stored locally in SQLite\n'
             '• Only the raw text you enter is sent to the AI backend\n'
             '• No personal financial data is sold or shared\n'
-            '• You can export and delete all data at any time\n\n'
-            'The only external calls are made to your configured backend URL:\n'
-            '1. POST /classify — routes your input to the right model\n'
-            '2. POST /parse — extracts transaction details\n'
-            '3. POST /coach — gives spending advice after a transaction\n'
-            '4. POST /chat — answers your budgeting questions',
+            '• You can export and delete all data at any time',
             style: TextStyle(color: c.textSecondary, height: 1.6),
           ),
         ),

@@ -1,19 +1,12 @@
 import '../models/user_profile.dart';
 import '../models/transaction_model.dart';
 
-// Period budget math: pool, remaining, safe-to-spend (daily pace), category splits.
-// Buffer is money carried from underspent days; it is subtracted from [remaining] only
-// for the daily pace split so those dollars are not double-counted. Spending headroom
-// for today is pace + buffer (see home card).
-
 class BudgetResult {
   final double disposableIncome;
   final double totalSpent;
   final double totalIncome;
   final double totalSaved;
-  /// Cash still in the pay-period pool (disposable + income − expenses). Buffer does **not** reduce this.
   final double remaining;
-  /// Daily pace: `(remaining − buffer) ÷ days left`. Combine with your buffer for total spending room today.
   final double safeToSpend;
   final double safetyBuffer;
   final double expectedDailyRate;
@@ -41,21 +34,15 @@ class BudgetResult {
 }
 
 class BudgetService {
-  /// [bufferAmount] is parked outside the even split (unspent daily slices, manual edits).
-  /// Subtracted from [remaining] only when computing the **daily pace** so the same cash
-  /// is not split across days and also stacked in buffer. Use [safeToSpend] + buffer for
-  /// how much you can spend today.
   static BudgetResult calculate(
     UserProfile profile,
-    List<TransactionModel> allTransactions, {
-    double bufferAmount = 0.0,
-  }) {
+    List<TransactionModel> allTransactions,
+  ) {
     final lastPayday = profile.lastPayday;
     final nextPayday = profile.nextPayday;
     final totalDays = profile.totalDaysInPeriod;
     final daysRemaining = profile.daysUntilPayday.clamp(1, totalDays);
 
-    // Filter transactions for current period
     final periodTx = allTransactions.where((t) {
       return t.date.isAfter(lastPayday.subtract(const Duration(days: 1))) &&
           t.date.isBefore(nextPayday.add(const Duration(days: 1)));
@@ -63,8 +50,6 @@ class BudgetService {
 
     double totalSpent = 0;
     double totalIncome = 0;
-    /// Logged "savings" are not tracked here — the monthly savings goal lives on
-    /// [UserProfile.savingsGoal] only (set in Settings / setup).
     const double totalSaved = 0.0;
     final byCategory = <String, double>{};
 
@@ -82,11 +67,8 @@ class BudgetService {
     final disposable = profile.disposableIncome.clamp(0.0, double.maxFinite);
     final incomeAdjustedPool = disposable + totalIncome;
     final remaining = incomeAdjustedPool - totalSpent;
-    final buf = bufferAmount.clamp(0.0, double.maxFinite);
-    // Money already moved into the buffer must not raise tomorrow’s “slice” of STS.
-    final pacingPool = (remaining - buf);
     final safeToSpend =
-        daysRemaining > 0 ? pacingPool / daysRemaining : 0.0;
+        daysRemaining > 0 ? remaining / daysRemaining : 0.0;
     final expectedDailyRate =
         totalDays > 0 ? incomeAdjustedPool / totalDays : 0.0;
     final safetyBuffer = safeToSpend - expectedDailyRate;
@@ -111,12 +93,11 @@ class BudgetService {
     );
   }
 
-  /// Generate "Tap to Justify" explanation text (pass current buffer so the formula matches the card).
+  /// Generate "Tap to Justify" explanation text.
   static List<JustificationLine> justify(
     UserProfile profile,
-    BudgetResult result, {
-    double bufferAmount = 0.0,
-  }) =>
+    BudgetResult result,
+  ) =>
       [
         JustificationLine('Salary / Disposable',
             '+${_fmt(profile.disposableIncome, profile.currency)}',
@@ -133,6 +114,9 @@ class BudgetService {
         const JustificationLine('━━━━━━━━━━━━━━━━', ''),
         JustificationLine('Days Remaining',
             '${result.daysRemaining} of ${result.totalDays}'),
+        JustificationLine(
+            'Remaining budget ÷ days left',
+            '${_fmt(result.remaining, profile.currency)} ÷ ${result.daysRemaining}'),
         JustificationLine('Your Safe-to-Spend Today',
             _fmt(result.safeToSpend, profile.currency),
             bold: true),
