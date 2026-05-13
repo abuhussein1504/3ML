@@ -738,38 +738,16 @@ class AppProvider extends ChangeNotifier {
       await _loadSuggestions();
     }
 
-    // Build confirmation message
-    final emoji = tx.isIncome
-        ? '💰'
-        : tx.isSavings
-            ? '📈'
-            : '🛒';
-    final action = tx.isIncome
-        ? 'Income logged'
-        : tx.isSavings
-            ? 'Savings logged'
-            : 'Spent';
-    final currency = _profile?.currency ?? 'EGP';
-
-    String response =
-        '$emoji **$action** $currency ${tx.amount!.toStringAsFixed(2)}'
-        '${tx.item != null ? ' on ${tx.item}' : ''} · ${DateParserService.format(tx.date)}\n'
-        '📂 Category: ${_catSvc.getDisplayName(tx.categoryName)}';
-
-    if (_budget != null && tx.isExpense) {
-      final b = _budget!;
-      response +=
-          '\n\n📊 Safe to spend today: $currency ${b.safeToSpend.toStringAsFixed(2)}';
-    }
-
+    // Tile-only confirmation in chat (no summary text bubble).
     _chatMessages.add(ChatMessage(
-      text: response,
+      text: '',
       type: ChatMessageType.system,
       transaction: tx,
     ));
 
     // ── Coach tip — only for expense transactions
     if (tx.isExpense) {
+      final currency = _profile?.currency ?? 'EGP';
       final weekSummary = _buildWeekSummary(tx.date);
       final tip = await _api.getCoachingTip(
             safeToSpendBefore: safeToSpendBefore,

@@ -140,7 +140,6 @@ class _ChatScreenState extends State<ChatScreen>
                           return _ChatBubble(
                             key: ValueKey(messages[i].id),
                             message: messages[i],
-                            currency: currency,
                           );
                         },
                       ),
@@ -514,9 +513,7 @@ class _AdaptiveActionButton extends StatelessWidget {
 // ── Chat bubble ────────────────────────────────────────────────
 class _ChatBubble extends StatelessWidget {
   final ChatMessage message;
-  final String currency;
-  const _ChatBubble(
-      {required Key key, required this.message, required this.currency})
+  const _ChatBubble({required Key key, required this.message})
       : super(key: key);
 
   @override
@@ -568,22 +565,13 @@ class _ChatBubble extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: AppTheme.accent.withValues(alpha: 0.2)),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('🤖', style: TextStyle(fontSize: 14)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  message.text,
-                  style: TextStyle(
-                    color: c.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-            ],
+          child: Text(
+            message.text,
+            style: TextStyle(
+              color: c.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
         ),
       );
