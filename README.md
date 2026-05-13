@@ -93,7 +93,7 @@ Content-Type: application/json
   "intent": "bought coffee",
   "item": "coffee",
   "amount": 35.0,
-  "date_expression": "today",
+  "date": "today",
   "needs_clarification": null,
   "confidence_score": 0.95
 }

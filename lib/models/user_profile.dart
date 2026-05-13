@@ -68,14 +68,14 @@ class UserProfile {
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    name: json['name'] as String,
-    salary: (json['salary'] as num).toDouble(),
-    payday: json['payday'] as int,
-    fixedBills: (json['fixedBills'] as num).toDouble(),
-    savingsGoal: (json['savingsGoal'] as num).toDouble(),
+    name: (json['name'] as String?)?.trim() ?? '',
+    salary: (json['salary'] as num?)?.toDouble() ?? 0.0,
+    payday: (json['payday'] as num?)?.toInt() ?? 1,
+    fixedBills: (json['fixedBills'] as num?)?.toDouble() ?? 0.0,
+    savingsGoal: (json['savingsGoal'] as num?)?.toDouble() ?? 0.0,
     currency: json['currency'] as String? ?? 'EGP',
     createdAt: json['createdAt'] != null
-        ? DateTime.parse(json['createdAt'] as String)
+        ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
         : DateTime.now(),
   );
 

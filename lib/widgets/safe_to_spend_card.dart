@@ -18,14 +18,15 @@ class SafeToSpendCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.appColors;
-    final isHealthy = budget.isHealthy;
-    final mainColor = isHealthy ? AppTheme.primary : AppTheme.danger;
     final currency = profile.currency;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Consumer<AppProvider>(
       builder: (context, provider, _) {
         final bufferAmt = provider.buffer.amount;
+        final availableToday = budget.safeToSpend;
+        final onTrack = availableToday >= 0;
+        final mainColor = onTrack ? AppTheme.primary : AppTheme.danger;
 
         return GestureDetector(
       onTap: () => _showJustification(context),
@@ -33,7 +34,7 @@ class SafeToSpendCard extends StatelessWidget {
         duration: const Duration(milliseconds: 400),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isHealthy
+            colors: onTrack
                 ? [
                     const Color(0xFF00D4A1)
                         .withValues(alpha: isDark ? 0.15 : 0.12),
@@ -71,7 +72,7 @@ class SafeToSpendCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          isHealthy
+                          onTrack
                               ? Icons.check_circle_outline_rounded
                               : Icons.warning_amber_rounded,
                           color: mainColor,
@@ -79,7 +80,7 @@ class SafeToSpendCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          isHealthy ? 'ON TRACK' : 'OVER BUDGET',
+                          onTrack ? 'ON TRACK' : 'OVER BUDGET',
                           style: TextStyle(
                             color: mainColor,
                             fontSize: 10,
@@ -107,7 +108,7 @@ class SafeToSpendCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Safe to Spend Today',
+                'Available to spend today',
                 style: TextStyle(
                   color: c.textSecondary,
                   fontSize: 13,
@@ -132,7 +133,7 @@ class SafeToSpendCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      budget.safeToSpend.abs().toStringAsFixed(2),
+                      availableToday.abs().toStringAsFixed(2),
                       style: TextStyle(
                         color: mainColor,
                         fontSize: 48,
@@ -145,9 +146,9 @@ class SafeToSpendCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-
-              // Safety buffer row
+              // Pace vs even split across the full pay period
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     budget.safetyBuffer >= 0
@@ -158,24 +159,9 @@ class SafeToSpendCard extends StatelessWidget {
                         : AppTheme.danger,
                     size: 14,
                   ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      budget.safetyBuffer >= 0
-                          ? '$currency ${budget.safetyBuffer.abs().toStringAsFixed(2)} above daily average'
-                          : '$currency ${budget.safetyBuffer.abs().toStringAsFixed(2)} below daily average',
-                      style: TextStyle(
-                        color: budget.safetyBuffer >= 0
-                            ? c.textSecondary
-                            : AppTheme.danger.withValues(alpha: 0.8),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
                 ],
               ),
 
-              // Buffer row — not part of safe-to-spend pacing (see [BudgetService.calculate]).
               const SizedBox(height: 12),
               _BufferRow(
                 bufferAmount: bufferAmt,
@@ -347,7 +333,7 @@ class _BufferRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Buffer (unspent daily + your edits)',
+                    'Buffer',
                     style: TextStyle(
                       color: c.textSecondary,
                       fontSize: 11,
@@ -432,10 +418,9 @@ class _BufferRow extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Buffer holds money that did not count as spent against your daily '
-              'pace (including amounts moved here automatically at day change, and '
-              'anything you set manually). It is never added to safe-to-spend — '
-              'only you change this when you move money in or out.',
+              'Buffer is built automatically: if you spend less than your daily pace, '
+              'the difference is credited here the next morning. It stacks with today’s pace '
+              'on the card above. You can still adjust the number manually.',
               style:
                   TextStyle(color: c.textSecondary, fontSize: 13, height: 1.5),
             ),

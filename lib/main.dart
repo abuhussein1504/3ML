@@ -5,9 +5,11 @@ import 'app_theme.dart';
 import 'providers/app_provider.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/main_shell.dart';
+import 'sqlite_init.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initSqlite();
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

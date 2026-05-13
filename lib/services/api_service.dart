@@ -13,12 +13,12 @@ import '../models/transaction_model.dart';
 ///
 ///  • EventParser — Colab ngrok FastAPI → POST {eventParserUrl}/parse
 ///      Body:     {"text":"..."}
-///      Response: structured JSON dict  OR  {"parseable": false}
+///      Response: { intent, category, item, amount, date, confidence, needs_clarification }
+///                OR {"parseable": false}
 ///
-///  • CoachChat   — Colab ngrok FastAPI → POST {coachChatUrl}/coach
-///                                      → POST {coachChatUrl}/chat
-///      Coach body:  {"user_input": {...}}
-///      Chat body:   {"user_context": { ... financial snapshot ... }, "user_input":"..."}
+///  • CoachChat   — Colab ngrok FastAPI
+///      POST {coachChatUrl}/coach — JSON body is the snapshot object itself (no wrapper).
+///      POST {coachChatUrl}/chat  — {"user_input":"...","user_context":"..."} (context is a string)
 ///
 /// System prompts live on the server side — Flutter does NOT send them.
 class ApiService {
@@ -39,8 +39,8 @@ class ApiService {
   }
 
   // ── Remote Colab / ngrok — set full `https://….ngrok-free.app` URLs here ───
-  String _eventParserUrl = 'https://6d52-36-125-172-55.ngrok-free.app';
-  String _coachChatUrl = 'https://6d52-34-125-172-55.ngrok-free.app';
+  String _eventParserUrl = 'https://8fdb-34-125-144-45.ngrok-free.app';
+  String _coachChatUrl = 'https://2be5-34-125-136-34.ngrok-free.app';
 
   void setEventParserUrl(String url) =>
       _eventParserUrl = url.trim().replaceAll(RegExp(r'/+$'), '');
@@ -51,19 +51,29 @@ class ApiService {
   String get coachChatUrl => _coachChatUrl;
 
   /// True only when a real http(s) URL has been configured.
-  bool _isReady(String url) =>
-      url.isNotEmpty &&
-      (url.startsWith('http://') || url.startsWith('https://'));
+  bool _isReady(String url) {
+    final clean = url.trim(); // FIX: removes invisible whitespace/newlines
+    return clean.isNotEmpty &&
+        (clean.startsWith('http://') || clean.startsWith('https://'));
+  }
+
+  bool get isEventParserConfigured => _isReady(_eventParserUrl);
+  bool get isCoachChatConfigured => _isReady(_coachChatUrl);
+
+  /// Trim and strip trailing slashes so `Uri.parse('$url/coach')` is valid.
+  String _safeUrl(String url) =>
+      url.trim().replaceAll(RegExp(r'/+$'), '');
 
   static const Map<String, String> _headers = {
     'Content-Type': 'application/json',
-    // ngrok requires this header to bypass the browser-warning page
     'ngrok-skip-browser-warning': 'true',
+    'User-Agent': 'PostmanRuntime/7.32.3',
   };
 
-  /// Short timeouts so offline / dead servers fail fast and local fallbacks run quickly.
-  static const Duration _classifierTimeout = Duration(seconds: 2);
-  static const Duration _remoteShortTimeout = Duration(seconds: 5);
+  /// Local classifier — give the model time to cold-start before heuristic fallback.
+  static const Duration _classifierTimeout = Duration(seconds: 8);
+  /// Remote LLM endpoints need a longer budget than short health checks.
+  static const Duration _remoteLlmTimeout = Duration(seconds: 45);
 
   // ───────────────────────────────────────────────────────────────────────────
   // CLASSIFIER  (local DistilBERT — always localhost)
@@ -74,18 +84,28 @@ class ApiService {
     try {
       final response = await http
           .post(
-            Uri.parse('${_classifierBaseUrl}/classify'),
+            Uri.parse('$_classifierBaseUrl/classify'),
             headers: _headers,
             body: jsonEncode({'text': userInput}),
           )
           .timeout(_classifierTimeout);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final label = (data['label'] as String? ?? '').toLowerCase();
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+        final rawLabel = (data['label'] as String? ?? '').toLowerCase();
+        // Accept common training label variants from the HF export.
+        final label = (rawLabel.contains('transaction') ||
+                rawLabel.contains('expense') ||
+                rawLabel == 'label_1' ||
+                rawLabel == '1' ||
+                rawLabel == 'pos' ||
+                rawLabel == 'positive')
+            ? 'transaction'
+            : 'conversation';
         final confidence = (data['confidence'] as num?)?.toDouble() ?? 1.0;
         return {
-          'label': label == 'transaction' ? 'transaction' : 'conversation',
+          'label': label,
           'confidence': confidence,
           'lowConfidence': confidence < 0.90,
         };
@@ -99,7 +119,7 @@ class ApiService {
   /// Heuristic fallback when the local classifier server is not running.
   Map<String, dynamic> _localClassify(String input) {
     final lower = input.trim().toLowerCase();
-
+    
     final questionPatterns = [
       'what',
       'how',
@@ -190,39 +210,57 @@ class ApiService {
   // ───────────────────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>?> parseTransaction(String userInput) async {
-    if (!_isReady(_eventParserUrl)) return localParseTransaction(userInput);
+    print("parseTransaction CALLED");
+
+    print("RAW URL = '$_eventParserUrl'");
+    print("TRIMMED URL = '${_eventParserUrl.trim()}'");
+    print("IS READY = ${_isReady(_eventParserUrl)}");
+
+    final url = _eventParserUrl.trim();
+
+    if (!_isReady(url)) {
+      print("❌ URL NOT READY → using local parser");
+      return localParseTransaction(userInput);
+    }
 
     try {
+      print("Calling: $url/parse");
+
       final response = await http
           .post(
-            Uri.parse('$_eventParserUrl/parse'),
+            Uri.parse('$url/parse'),
             headers: _headers,
             body: jsonEncode({'text': userInput}),
           )
-          .timeout(_remoteShortTimeout);
+          .timeout(_remoteLlmTimeout);
+
+      print("STATUS CODE: ${response.statusCode}");
+      print("BODY: ${response.body}");
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        // Server exhausted retries and returned {"parseable": false}
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+
         if (data is Map && data['parseable'] == false) {
           return {'not_parseable': true};
         }
-        return _normalizeParserResponse(data);
+
+        if (data is Map<String, dynamic>) {
+          return _normalizeParserResponse(data);
+        }
+
+        return _normalizeParserResponse(Map<String, dynamic>.from(data));
       }
 
-      if (response.statusCode == 422 || response.statusCode == 400) {
-        return {'not_parseable': true};
-      }
-
-      // Any other error — fall back to local parser
       return localParseTransaction(userInput);
-    } catch (_) {
+
+    } catch (e, stack) {
+      print("❌ PARSE ERROR: $e");
+      print(stack);
       return localParseTransaction(userInput);
     }
   }
-
   // ───────────────────────────────────────────────────────────────────────────
-  // LOCAL PARSER — regex-based offline fallback
+  // LOCAL PARSER — regex-based offline fallback (second option after remote)
   // ───────────────────────────────────────────────────────────────────────────
 
   Map<String, dynamic>? localParseTransaction(String input) {
@@ -235,9 +273,13 @@ class ApiService {
         .hasMatch(lower)) {
       intent = 'income';
     } else if (RegExp(
-            r'\b(saved|saving|deposit|emergency fund|investment|invest)\b')
+            r'\b(invest|investment|stocks?|crypto|sip\b|mutual fund|brokerage|portfolio)\b')
         .hasMatch(lower)) {
       intent = 'investment';
+    } else if (RegExp(r'\b(saved|saving|deposit|emergency fund)\b')
+        .hasMatch(lower)) {
+      // Monthly savings goal is manual in Settings; treat as normal spend/outflow.
+      intent = 'expense';
     }
 
     // Amount: avoid matching only the first 3 digits of values like 5000 (old bug).
@@ -262,22 +304,22 @@ class ApiService {
         ? cleaned[0].toUpperCase() + cleaned.substring(1)
         : null;
 
-    // Detect date expression
-    String dateExpr = 'today';
-    if (lower.contains('yesterday')) dateExpr = 'yesterday';
+    // Natural-language date string (same key as remote parser)
+    String date = 'today';
+    if (lower.contains('yesterday')) date = 'yesterday';
     final daysAgoMatch = RegExp(r'(\d+)\s+days?\s+ago').firstMatch(lower);
-    if (daysAgoMatch != null) dateExpr = '${daysAgoMatch.group(1)} days ago';
+    if (daysAgoMatch != null) date = '${daysAgoMatch.group(1)} days ago';
     final lastDayMatch = RegExp(
             r'last\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)')
         .firstMatch(lower);
-    if (lastDayMatch != null) dateExpr = 'last ${lastDayMatch.group(1)}';
+    if (lastDayMatch != null) date = 'last ${lastDayMatch.group(1)}';
 
     return {
       'intent': intent,
       'category': _guessCategory(lower, intent),
       'item': item,
       'amount': amount,
-      'date_expression': dateExpr,
+      'date': date,
       'needs_clarification': 'NO',
       'confidence': 0.75,
     };
@@ -397,44 +439,79 @@ class ApiService {
     return 'other';
   }
 
-  /// Normalise Event Parser JSON to consistent internal keys.
-  Map<String, dynamic> _normalizeParserResponse(dynamic raw) {
-    final Map<String, dynamic> data = raw is Map<String, dynamic> ? raw : {};
+  /// Normalise Event Parser JSON to one map (same keys/order shape as the cloud API).
+  Map<String, dynamic> _normalizeParserResponse(Map<String, dynamic> data) {
+    String str(String key) {
+      final v = data[key];
+      if (v == null) return '';
+      final t = v.toString().trim();
+      if (t.isEmpty || t == 'null') return '';
+      return t;
+    }
 
-    String str(String key) => (data[key] ?? '').toString();
-    dynamic val(String key) => data[key];
+    // Accept PascalCase from older servers
+    String pickStr(List<String> keys) {
+      for (final k in keys) {
+        final s = str(k);
+        if (s.isNotEmpty) return s;
+      }
+      return '';
+    }
 
-    final intent = str('intent').toLowerCase();
-    final category = str('category').toLowerCase();
-    final needsClarif = data['needs_clarification'];
-    final confidence = val('confidence');
+    dynamic pickVal(List<String> keys) {
+      for (final k in keys) {
+        if (data.containsKey(k) && data[k] != null) return data[k];
+      }
+      return null;
+    }
 
-    // Parser contract: "NO" | "item" | "amount" | "item, amount" (we store Title Case).
+    final intent = pickStr(['intent', 'Intent']).toLowerCase();
+    final category = pickStr(['category', 'Category']).toLowerCase();
+    final itemRaw = pickVal(['item', 'Item']);
+    final item = itemRaw == null ? null : itemRaw.toString().trim().isEmpty
+        ? null
+        : itemRaw.toString().trim();
+
+    final needsClarif = pickVal(['needs_clarification', 'Needs_Clarification']);
+    final confidenceRaw = pickVal(['confidence', 'Confidence']);
+
     final needsStr = TransactionModel.normalizeClarificationLabel(
       needsClarif?.toString() ?? 'NO',
     );
 
     double? parsedAmount;
-    final rawAmount = val('amount');
-    if (rawAmount != null) parsedAmount = (rawAmount as num).toDouble();
+    final rawAmount = pickVal(['amount', 'Amount']);
+    if (rawAmount is num) {
+      parsedAmount = rawAmount.toDouble();
+    } else if (rawAmount != null) {
+      parsedAmount = double.tryParse(rawAmount.toString());
+    }
+
+    final dateRaw = pickStr(['date', 'Date']);
+    final date = dateRaw.isNotEmpty ? dateRaw : 'today';
+
+    final conf = confidenceRaw is num
+        ? confidenceRaw.toDouble()
+        : double.tryParse(confidenceRaw?.toString() ?? '') ?? 1.0;
 
     return {
       'intent': intent,
       'category': category,
-      'item': val('item') as String?,
+      'item': item,
       'amount': parsedAmount,
-      'date_expression': str('date').isNotEmpty ? str('date') : 'today',
+      'date': date,
+      'confidence': conf,
       'needs_clarification': needsStr,
-      'confidence': confidence != null ? (confidence as num).toDouble() : 1.0,
     };
   }
 
   // ───────────────────────────────────────────────────────────────────────────
   // COACH  (Colab ngrok)
-  // POST {coachChatUrl}/coach  {"user_input": {...}}
+  // POST {coachChatUrl}/coach  — raw JSON body = snapshot (no "user_input" wrapper)
   // ───────────────────────────────────────────────────────────────────────────
 
   Future<String?> getCoachingTip({
+    required double safeToSpendBefore,
     required double safeToSpendToday,
     required int runwayDays,
     required double currentBalance,
@@ -444,36 +521,53 @@ class ApiService {
     required bool isOverBudget,
     required Map<String, dynamic> weekSummary,
   }) async {
-    if (!_isReady(_coachChatUrl)) return null;
+    if (!_isReady(_coachChatUrl)) {
+      print("❌ Coach URL not ready");
+      return null;
+    }
+
+    final url = _safeUrl(_coachChatUrl);
+
+    final coachBody = {
+      'safe_to_spend_before': safeToSpendBefore,
+      'safe_to_spend_today': safeToSpendToday,
+      'runway_days': runwayDays,
+      'current_balance': currentBalance,
+      'is_over_budget': isOverBudget,
+      'recent_expense': {
+        'amount': recentAmount,
+        'category': recentCategory,
+        'item': recentItem,
+      },
+      'week_summary': weekSummary,
+    };
 
     try {
-      final userInputMap = {
-        'safe_to_spend_today': safeToSpendToday,
-        'runway_days': runwayDays,
-        'current_balance': currentBalance,
-        'is_over_budget': isOverBudget,
-        'recent_expense': {
-          'amount': recentAmount,
-          'category': recentCategory,
-          'item': recentItem,
-        },
-        'week_summary': weekSummary,
-      };
+      print("COACH CALL → $url/coach");
+      print("BODY: ${jsonEncode(coachBody)}");
 
-      final response = await http
-          .post(
-            Uri.parse('$_coachChatUrl/coach'),
-            headers: _headers,
-            body: jsonEncode({'user_input': userInputMap}),
-          )
-          .timeout(_remoteShortTimeout);
+      final response = await http.post(
+        Uri.parse('$url/coach'),
+        headers: _headers,
+        body: jsonEncode(coachBody),
+      ).timeout(_remoteLlmTimeout);
+
+      print("STATUS: ${response.statusCode}");
+      print("RESPONSE: ${response.body}");
 
       if (response.statusCode == 200) {
         return _extractStringResponse(
-            response.body, ['message', 'advice', 'response']);
+          utf8.decode(response.bodyBytes),
+          ['message'],
+        );
       }
+
+      print("❌ Coach failed with status: ${response.statusCode}");
       return null;
-    } catch (_) {
+
+    } catch (e, stack) {
+      print("❌ COACH ERROR: $e");
+      print(stack);
       return null;
     }
   }
@@ -485,28 +579,47 @@ class ApiService {
 
   Future<String?> askChat({
     required String question,
-    required Map<String, dynamic> userContext,
+    required String userContext,
   }) async {
-    if (!_isReady(_coachChatUrl)) return null;
+    if (!_isReady(_coachChatUrl)) {
+      print("❌ Chat URL not ready");
+      return null;
+    }
+
+    final url = _safeUrl(_coachChatUrl);
 
     try {
-      final response = await http
-          .post(
-            Uri.parse('$_coachChatUrl/chat'),
-            headers: _headers,
-            body: jsonEncode({
-              'user_context': userContext,
-              'user_input': question,
-            }),
-          )
-          .timeout(_remoteShortTimeout);
+      print("CHAT CALL → $url/chat");
+
+      final body = {
+        'user_context': userContext,
+        'user_input': question,
+      };
+
+      print("BODY: ${jsonEncode(body)}");
+
+      final response = await http.post(
+        Uri.parse('$url/chat'),
+        headers: _headers,
+        body: jsonEncode(body),
+      ).timeout(_remoteLlmTimeout);
+
+      print("STATUS: ${response.statusCode}");
+      print("RESPONSE: ${response.body}");
 
       if (response.statusCode == 200) {
         return _extractStringResponse(
-            response.body, ['answer', 'message', 'response']);
+          utf8.decode(response.bodyBytes),
+          ['answer'],
+        );
       }
+
+      print("❌ Chat failed: ${response.statusCode}");
       return null;
-    } catch (_) {
+
+    } catch (e, stack) {
+      print("❌ CHAT ERROR: $e");
+      print(stack);
       return null;
     }
   }
@@ -548,16 +661,16 @@ class ApiService {
       return "⚠️ You're over your budget for this period. Try to hold back on spending for the next few days.";
     }
     if (safeToSpend < 20) {
-      return "🔶 You're running tight — only $currency ${safeToSpend.toStringAsFixed(2)}/day left. Skip the extras.";
+      return "You're running tight — only $currency ${safeToSpend.toStringAsFixed(2)}/day left. Skip the extras.";
     }
     if (amountSpent > safeToSpend * 0.5) {
-      return "💡 That ${item != null ? '"$item"' : 'purchase'} took a big chunk of today's budget. Be mindful of the rest.";
+      return "That ${item != null ? '"$item"' : 'purchase'} took a big chunk of today's budget. Be mindful of the rest.";
     }
-    return "✅ You're on track! Keep it up and you'll make it to payday comfortably.";
+    return "You're on track! Keep it up and you'll make it to payday comfortably.";
   }
 
   String localChatFallback(String question) {
-    return "🤔 The AI assistant isn't reachable right now. Make sure your Colab server is running.\n\n"
+    return "The AI assistant isn't reachable right now.\n\n"
         "In the meantime: focus on essentials, track every purchase, and review your weekly summary.";
   }
 }

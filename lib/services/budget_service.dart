@@ -2,7 +2,9 @@ import '../models/user_profile.dart';
 import '../models/transaction_model.dart';
 
 // Period budget math: pool, remaining, safe-to-spend (daily pace), category splits.
-// Buffer is subtracted only inside the STS divisor — it is never added to that number.
+// Buffer is money carried from underspent days; it is subtracted from [remaining] only
+// for the daily pace split so those dollars are not double-counted. Spending headroom
+// for today is pace + buffer (see home card).
 
 class BudgetResult {
   final double disposableIncome;
@@ -11,7 +13,7 @@ class BudgetResult {
   final double totalSaved;
   /// Cash still in the pay-period pool (disposable + income − expenses). Buffer does **not** reduce this.
   final double remaining;
-  /// Daily pace from **(remaining − buffer) ÷ days left** — buffer is sidelined, never added here.
+  /// Daily pace: `(remaining − buffer) ÷ days left`. Combine with your buffer for total spending room today.
   final double safeToSpend;
   final double safetyBuffer;
   final double expectedDailyRate;
@@ -39,8 +41,10 @@ class BudgetResult {
 }
 
 class BudgetService {
-  /// [bufferAmount] is money parked in the buffer pocket (e.g. unspent daily slices moved there).
-  /// It is **subtracted** from [remaining] only for safe-to-spend pacing so buffer never inflates STS.
+  /// [bufferAmount] is parked outside the even split (unspent daily slices, manual edits).
+  /// Subtracted from [remaining] only when computing the **daily pace** so the same cash
+  /// is not split across days and also stacked in buffer. Use [safeToSpend] + buffer for
+  /// how much you can spend today.
   static BudgetResult calculate(
     UserProfile profile,
     List<TransactionModel> allTransactions, {
@@ -59,7 +63,9 @@ class BudgetService {
 
     double totalSpent = 0;
     double totalIncome = 0;
-    double totalSaved = 0;
+    /// Logged "savings" are not tracked here — the monthly savings goal lives on
+    /// [UserProfile.savingsGoal] only (set in Settings / setup).
+    const double totalSaved = 0.0;
     final byCategory = <String, double>{};
 
     for (final tx in periodTx) {
@@ -70,8 +76,6 @@ class BudgetService {
             (byCategory[tx.categoryName] ?? 0) + tx.amount!;
       } else if (tx.isIncome) {
         totalIncome += tx.amount!;
-      } else if (tx.isSavings) {
-        totalSaved += tx.amount!;
       }
     }
 
@@ -114,33 +118,22 @@ class BudgetService {
     double bufferAmount = 0.0,
   }) =>
       [
-        JustificationLine('💰 Salary / Disposable',
+        JustificationLine('Salary / Disposable',
             '+${_fmt(profile.disposableIncome, profile.currency)}',
             bold: true),
         if (result.totalIncome > 0)
-          JustificationLine('💵 Extra Income (in your budget pool)',
+          JustificationLine('Extra Income (in your budget pool)',
               '+${_fmt(result.totalIncome, profile.currency)}'),
         const JustificationLine('━━━━━━━━━━━━━━━━', ''),
-        JustificationLine('🛒 Spent This Period',
+        JustificationLine('Spent This Period',
             '-${_fmt(result.totalSpent, profile.currency)}'),
-        JustificationLine('💵 Remaining Budget',
+        JustificationLine('Remaining Budget',
             '= ${_fmt(result.remaining, profile.currency)}',
             bold: true),
-        if (bufferAmount > 0)
-          JustificationLine(
-            '🏦 In buffer (not counted toward daily pace)',
-            '−${_fmt(bufferAmount, profile.currency)}',
-          ),
         const JustificationLine('━━━━━━━━━━━━━━━━', ''),
-        JustificationLine('📅 Days Remaining',
+        JustificationLine('Days Remaining',
             '${result.daysRemaining} of ${result.totalDays}'),
-        JustificationLine(
-            '📊 Safe-to-Spend',
-            bufferAmount > 0
-                ? '(${_fmt(result.remaining, profile.currency)} − buffer) ÷ ${result.daysRemaining} days'
-                : '${_fmt(result.remaining, profile.currency)} ÷ ${result.daysRemaining} days',
-            sub: true),
-        JustificationLine('✅ Your Safe-to-Spend Today',
+        JustificationLine('Your Safe-to-Spend Today',
             _fmt(result.safeToSpend, profile.currency),
             bold: true),
       ];

@@ -1,7 +1,7 @@
 import 'package:intl/intl.dart';
 
 class DateParserService {
-  /// Convert a natural language date_expression from Model A into a [DateTime].
+  /// Convert a natural-language `date` string from the event parser into a [DateTime].
   /// Falls back to [DateTime.now()] if parsing fails.
   static DateTime parse(String? expression) {
     if (expression == null || expression.isEmpty) return DateTime.now();

@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/transaction_model.dart';
+import '../sqlite_init.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -15,6 +16,7 @@ class DatabaseService {
   }
 
   Future<Database> _initDb() async {
+    await initSqlite();
     final path = join(await getDatabasesPath(), '3ml_budget.db');
     return openDatabase(
       path,

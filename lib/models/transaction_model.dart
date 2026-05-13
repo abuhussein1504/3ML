@@ -5,8 +5,9 @@ class TransactionModel {
   final String rawInput;
 
   // From Model A
-  final String
-      transactionType; // Income | Expense | Savings & Investment | Unknown
+  /// Income | Expense | Unknown (legacy DB rows may still say Savings & Investment;
+  /// [fromMap] maps those to Expense).
+  final String transactionType;
   final String?
       intent; // expense | income | financial services | investment | unknown
   final String? item;
@@ -14,7 +15,7 @@ class TransactionModel {
   final DateTime date;
   final String? dateExpression;
 
-  /// Event parser values: NO | Item | Amount | Item & Amount
+  /// Event parser / API: NO | item | amount | item & amount
   final String needsClarification;
   final double confidenceScore;
 
@@ -101,7 +102,8 @@ class TransactionModel {
       TransactionModel(
         id: map['id'] as String,
         rawInput: map['rawInput'] as String,
-        transactionType: map['transactionType'] as String,
+        transactionType: _normalizeStoredTransactionType(
+            map['transactionType'] as String? ?? 'Unknown'),
         intent: map['intent'] as String?,
         item: map['item'] as String?,
         amount:
@@ -125,12 +127,12 @@ class TransactionModel {
     }
     final raw = map['needsClarification'];
     if (raw is String) return normalizeClarificationLabel(raw);
-    if (raw is int) return raw == 1 ? 'Item' : 'NO';
-    if (raw is bool) return raw ? 'Item' : 'NO';
+    if (raw is int) return raw == 1 ? 'item' : 'NO';
+    if (raw is bool) return raw ? 'item' : 'NO';
     return 'NO';
   }
 
-  /// Normalises parser / UI variants to: NO | Item | Amount | Item & Amount
+  /// Normalises parser / UI variants to API values: NO | item | amount | item & amount
   static String normalizeClarificationLabel(String raw) =>
       _normalizeClarificationLabel(raw);
 
@@ -138,9 +140,9 @@ class TransactionModel {
     final s = raw.trim();
     if (s.isEmpty || s.toUpperCase() == 'NO' || s == '0') return 'NO';
     final t = s.toLowerCase();
-    if (t.contains('item') && t.contains('amount')) return 'Item & Amount';
-    if (t == 'item') return 'Item';
-    if (t == 'amount') return 'Amount';
+    if (t.contains('item') && t.contains('amount')) return 'item & amount';
+    if (t == 'item') return 'item';
+    if (t == 'amount') return 'amount';
     return 'NO';
   }
 
@@ -164,8 +166,8 @@ class TransactionModel {
     final rawClarif = json['needs_clarification'];
     final needs = rawClarif is String
         ? normalizeClarificationLabel(rawClarif)
-            : (rawClarif is bool
-            ? (rawClarif ? 'Item' : 'NO')
+        : (rawClarif is bool
+            ? (rawClarif ? 'item' : 'NO')
             : normalizeClarificationLabel(rawClarif?.toString() ?? 'NO'));
 
     double? amt;
@@ -180,12 +182,22 @@ class TransactionModel {
       item: json['item'] as String?,
       amount: amt,
       date: resolvedDate,
-      dateExpression: json['date_expression'] as String? ?? 'today',
+      dateExpression: (json['date'] ?? json['date_expression']) as String? ??
+          'today',
       needsClarification: needs,
       confidenceScore: (json['confidence'] as num? ?? 1.0).toDouble(),
       categoryName: modelCategory,
       rawModelOutput: Map<String, dynamic>.from(json),
     );
+  }
+
+  /// Legacy rows used [kLegacySavingsInvestmentType]; load as expense so
+  /// budgeting matches other spending (monthly savings goal stays in profile).
+  static const String kLegacySavingsInvestmentType = 'Savings & Investment';
+
+  static String _normalizeStoredTransactionType(String raw) {
+    if (raw == kLegacySavingsInvestmentType) return 'Expense';
+    return raw;
   }
 
   static String _transactionTypeFromIntent(String intent, String category) {
@@ -194,7 +206,8 @@ class TransactionModel {
         return 'Income';
       case 'financial services':
       case 'investment':
-        return 'Savings & Investment';
+        // Counts like other expenses; category stays `investment` when applicable.
+        return 'Expense';
       case 'unknown':
         return 'Unknown';
       case 'expense':
@@ -209,7 +222,7 @@ class TransactionModel {
     final c = category.toLowerCase();
     if (c == 'income') return 'Income';
     if (c == 'investment' || c == 'savings & investment') {
-      return 'Savings & Investment';
+      return 'Expense';
     }
     if (c == 'unknown') return 'Unknown';
     return 'Expense';

@@ -98,7 +98,9 @@ class AppProvider extends ChangeNotifier {
   String? _lastCoachMessage;
 
   static const _kChatMessagesJson = 'chat_messages_v1';
-  static const _kBufferNextCreditDay = 'buffer_next_credit_day_iso';
+  /// First calendar day not yet credited with unspent daily STS (ISO date).
+  /// Bumped to v2 so installs that stored `today` and never rolled no longer skip yesterday.
+  static const _kBufferNextCreditDay = 'buffer_next_credit_day_iso_v2';
 
   // ── Getters ────────────────────────────────────────────────
   bool get isInitialized => _isInitialized;
@@ -147,16 +149,25 @@ class AppProvider extends ChangeNotifier {
       if (profileJson != null) {
         try {
           _profile = UserProfile.fromJson(jsonDecode(profileJson));
+        } catch (e) {
+          debugPrint('Error loading profile JSON: $e');
+          _profile = null;
+        }
+        if (_profile != null) {
           _isOnboarded = true;
           _themeFirstChoiceDone = true;
           await prefs.setBool('theme_first_choice_done', true);
           await _loadTransactions();
-          await _applyBufferCreditsForCompletedCalendarDays(prefs);
-          _recalcBudget();
-        } catch (e) {
-          debugPrint('Error loading profile/transactions: $e');
-          _profile = null;
-          _isOnboarded = false;
+          try {
+            await _applyBufferCreditsForCompletedCalendarDays(prefs);
+          } catch (e) {
+            debugPrint('Buffer credit rollover skipped: $e');
+          }
+          try {
+            _recalcBudget();
+          } catch (e) {
+            debugPrint('Budget recalc on init: $e');
+          }
         }
       }
     } catch (e) {
@@ -191,11 +202,12 @@ class AppProvider extends ChangeNotifier {
     final name = _profile?.name ?? 'there';
     _chatMessages.add(ChatMessage(
       text: "Hey $name 👋 I'm your budget assistant!\n\n"
-          "Tell me what you spent, earned, or saved — in plain English:\n"
+          "Tell me what you spent or earned — in plain English:\n"
           "• \"coffee 35\" or \"spent 35 on coffee\"\n"
           "• \"salary 12000\" or \"got paid 12000\"\n"
-          "• \"saved 500 to emergency fund\"\n\n"
-          "Or ask me anything about budgeting — I'm here to help! 💬\n"
+          "• \"investment 500\" or \"stock purchase 200\"\n\n"
+          "Set your monthly savings goal in Settings — it shapes your disposable budget.\n\n"
+          "Or ask me anything about budgeting — I'm here to help!\n"
           "The more natural the better. Let's keep your money in check!",
       type: ChatMessageType.system,
     ));
@@ -210,7 +222,11 @@ class AppProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('theme_first_choice_done', true);
     await _loadTransactions();
-    await _applyBufferCreditsForCompletedCalendarDays(prefs);
+    try {
+      await _applyBufferCreditsForCompletedCalendarDays(prefs);
+    } catch (e) {
+      debugPrint('Buffer credit rollover skipped: $e');
+    }
     _recalcBudget();
     if (_chatMessages.isEmpty) _addWelcomeChatMessage();
     await _persistChatMessages();
@@ -230,7 +246,11 @@ class AppProvider extends ChangeNotifier {
       await _db.insertTransaction(tx);
     }
     await _loadTransactions();
-    await _applyBufferCreditsForCompletedCalendarDays(prefs);
+    try {
+      await _applyBufferCreditsForCompletedCalendarDays(prefs);
+    } catch (e) {
+      debugPrint('Buffer credit rollover skipped: $e');
+    }
     _recalcBudget();
     await _loadChatMessagesFromDisk();
     if (_chatMessages.isEmpty) _addWelcomeChatMessage();
@@ -303,6 +323,7 @@ class AppProvider extends ChangeNotifier {
       lastUpdated: DateTime.now(),
     );
     await _saveBuffer();
+    _recalcBudget();
     notifyListeners();
   }
 
@@ -328,6 +349,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   /// For a completed calendar day: unspent slice of safe-to-spend (see stored snapshot) → buffer.
+  /// Uses [bufferAmount] 0 for fallback STS so current buffer balance does not shrink the baseline.
   double _unspentForCalendarDay(DateTime day, SharedPreferences prefs) {
     if (_profile == null) return 0.0;
     final iso = _isoDate(day);
@@ -339,9 +361,9 @@ class AppProvider extends ChangeNotifier {
       final b = BudgetService.calculate(
         _profile!,
         _transactions,
-        bufferAmount: _buffer.amount,
+        bufferAmount: 0.0,
       );
-      sts = b.expectedDailyRate;
+      sts = b.safeToSpend;
     }
     final spent = _sumExpensesOnCalendarDay(day);
     return math.max(0.0, sts - spent);
@@ -353,12 +375,19 @@ class AppProvider extends ChangeNotifier {
     if (_profile == null) return;
     final today = _dateOnly(DateTime.now());
     final yesterday = today.subtract(const Duration(days: 1));
-    final nextStr = prefs.getString(_kBufferNextCreditDay);
-    if (nextStr == null) {
-      await prefs.setString(_kBufferNextCreditDay, _isoDate(today));
-      return;
+    var nextStr = prefs.getString(_kBufferNextCreditDay);
+    if (nextStr == null || nextStr.trim().isEmpty) {
+      // First run: at least try yesterday (storing `today` skipped all past days forever).
+      nextStr = _isoDate(yesterday);
+      await prefs.setString(_kBufferNextCreditDay, nextStr);
     }
-    var d = _dateOnly(DateTime.parse(nextStr));
+    var parsedNext = DateTime.tryParse(nextStr.trim());
+    if (parsedNext == null) {
+      nextStr = _isoDate(yesterday);
+      await prefs.setString(_kBufferNextCreditDay, nextStr);
+      parsedNext = DateTime.tryParse(nextStr.trim());
+    }
+    var d = _dateOnly(parsedNext ?? yesterday);
     var updated = false;
     while (!d.isAfter(yesterday)) {
       final add = _unspentForCalendarDay(d, prefs);
@@ -492,45 +521,55 @@ class AppProvider extends ChangeNotifier {
     };
   }
 
-  // ── Coach / chat JSON snapshot (matches ApiService + Colab contract) ──
-  Map<String, dynamic> _coachChatPayloadBase() {
-    final b = _budget;
-    if (b == null || _profile == null) return {};
+  /// True when the event-parser model already produced a usable transaction snapshot.
+  bool _parserSnapshotLooksTransactional(Map<String, dynamic> p) {
+    if (p['not_parseable'] == true) return false;
+    final intent = (p['intent'] as String? ?? '').trim().toLowerCase();
+    final category = (p['category'] as String? ?? '').trim().toLowerCase();
+    if (intent.isEmpty || intent == 'unknown') return false;
+    if (category.isEmpty || category == 'unknown') return false;
+    return true;
+  }
 
-    final weekSummary = _buildWeekSummary(DateTime.now());
-    TransactionModel? recentExp;
+  /// `/chat` [user_context] — single string the coach model expects (not a JSON object).
+  String _buildChatUserContextString() {
+    final b = _budget;
+    final p = _profile;
+    if (b == null || p == null) return '';
+
+    final currency = p.currency;
+    final week = _buildWeekSummary(DateTime.now());
+    final totalSpent = (week['total_spent_of_week'] as num).toDouble();
+    final budgetW = (week['budget_of_week'] as num).toDouble();
+    final top = week['top_category_of_week'] as String? ?? '';
+    final status = b.safeToSpend < 0 ? 'Over budget' : 'On track';
+
+    TransactionModel? recent;
     for (final t in _transactions) {
       if (t.isExpense && (t.amount ?? 0) != 0) {
-        recentExp = t;
+        recent = t;
         break;
       }
     }
 
-    return {
-      'safe_to_spend_today': b.safeToSpend,
-      'buffer_amount': _buffer.amount,
-      'runway_days': b.daysRemaining,
-      'current_balance': b.remaining,
-      'is_over_budget': b.safeToSpend < 0,
-      'recent_expense': recentExp == null
-          ? <String, dynamic>{}
-          : {
-              'amount': recentExp.amount,
-              'category': recentExp.categoryName,
-              'item': recentExp.item ?? recentExp.intent ?? '',
-            },
-      'week_summary': weekSummary,
-    };
-  }
+    final recentNarrative = recent == null
+        ? 'No recent expenses logged in this period.'
+        : 'You spent ${recent.amount!.toStringAsFixed(2)} $currency on '
+            '${recent.item ?? recent.categoryName}.';
 
-  /// `/chat` receives the numeric snapshot plus the last coach tip (not a hand-written prose summary).
-  Map<String, dynamic> _buildChatUserContextMap() {
-    final base = _coachChatPayloadBase();
-    if (base.isEmpty) return {};
-    return {
-      ...base,
-      'last_coach_message': _lastCoachMessage ?? '',
-    };
+    final coachAppend = (_lastCoachMessage ?? '').trim().isEmpty
+        ? ''
+        : '\n\nRecent coaching insight: ${_lastCoachMessage!.trim()}';
+
+    return 'User financial snapshot:\n'
+        '- Balance: ${b.remaining.toStringAsFixed(2)} $currency\n'
+        '- Days until payday: ${p.daysUntilPayday}\n'
+        '- Safe to spend today: ${b.safeToSpend.toStringAsFixed(2)}/day\n'
+        '- Budget status: $status\n'
+        '- Top spending category this week: $top\n'
+        '- Total spent this week: ${totalSpent.toStringAsFixed(2)} of '
+        '${budgetW.toStringAsFixed(2)} budget$coachAppend\n\n'
+        'Recent financial activity: "$recentNarrative"';
   }
 
   // ── Chat & Transaction Processing ─────────────────────────
@@ -546,7 +585,21 @@ class AppProvider extends ChangeNotifier {
     _isProcessing = true;
     notifyListeners();
 
-    // ── Step 1: Classify ─────────────────────────────────────
+    // ── Step 1: Prefer remote event parser when configured (model first) ──
+    Map<String, dynamic>? parserFirst;
+    if (_api.isEventParserConfigured) {
+      parserFirst = await _api.parseTransaction(input);
+      if (parserFirst != null &&
+          _parserSnapshotLooksTransactional(parserFirst)) {
+        await _handleTransaction(input, preParsed: parserFirst);
+        _isProcessing = false;
+        await _persistChatMessages();
+        notifyListeners();
+        return;
+      }
+    }
+
+    // ── Step 2: Classify (local DistilBERT, then heuristic) ───────────────
     final classification = await _api.classifyInput(input);
     final label = classification['label'] as String;
     final lowConfidence = classification['lowConfidence'] as bool;
@@ -566,7 +619,7 @@ class AppProvider extends ChangeNotifier {
     if (label == 'conversation') {
       await _handleChat(input);
     } else {
-      await _handleTransaction(input);
+      await _handleTransaction(input, preParsed: parserFirst);
     }
 
     _isProcessing = false;
@@ -576,10 +629,10 @@ class AppProvider extends ChangeNotifier {
 
   // ── Chat branch ────────────────────────────────────────────
   Future<void> _handleChat(String question) async {
-    final ctxMap = _buildChatUserContextMap();
-    final answer = ctxMap.isEmpty
+    final ctx = _buildChatUserContextString();
+    final answer = ctx.isEmpty
         ? _api.localChatFallback(question)
-        : (await _api.askChat(question: question, userContext: ctxMap) ??
+        : (await _api.askChat(question: question, userContext: ctx) ??
             _api.localChatFallback(question));
 
     _chatMessages.add(ChatMessage(
@@ -589,8 +642,11 @@ class AppProvider extends ChangeNotifier {
   }
 
   // ── Transaction branch ─────────────────────────────────────
-  Future<void> _handleTransaction(String input) async {
-    final parsed = await _api.parseTransaction(input);
+  Future<void> _handleTransaction(
+    String input, {
+    Map<String, dynamic>? preParsed,
+  }) async {
+    final parsed = preParsed ?? await _api.parseTransaction(input);
 
     if (parsed == null) {
       _chatMessages.add(ChatMessage(
@@ -603,12 +659,12 @@ class AppProvider extends ChangeNotifier {
 
     if (parsed['not_parseable'] == true) {
       _chatMessages.add(ChatMessage(
-        text: "✏️ I couldn't understand that as a transaction.\n\n"
+        text: "I couldn't understand that as a transaction.\n\n"
             "Try rewording it more simply, like:\n"
             "• \"coffee 10\"\n"
             "• \"lunch 45\"\n"
             "• \"salary 12000\"\n\n"
-            "Keep it clear and I'll catch it! 😊",
+            "Keep it clear and I'll catch it!",
         type: ChatMessageType.error,
       ));
       return;
@@ -628,9 +684,14 @@ class AppProvider extends ChangeNotifier {
       return;
     }
 
-    // Resolve date
-    final dateExpr = parsed['date_expression'] as String? ?? 'today';
+    // Resolve natural-language date from parser (`date`, legacy `date_expression`)
+    final dateRaw = parsed['date'] ?? parsed['date_expression'];
+    var dateExpr = dateRaw?.toString().trim() ?? '';
+    if (dateExpr.isEmpty) dateExpr = 'today';
     final resolvedDate = DateParserService.parse(dateExpr);
+
+    // Safe-to-spend before this transaction (for /coach payload)
+    final safeToSpendBefore = _budget?.safeToSpend ?? 0.0;
 
     // Build transaction
     final tx = TransactionModel.fromModelA(
@@ -644,7 +705,7 @@ class AppProvider extends ChangeNotifier {
     if (tx.amount == null) {
       _chatMessages.add(ChatMessage(
         text:
-            "💭 Looks like a ${tx.item ?? 'transaction'} — but what was the amount?",
+            "Looks like a ${tx.item ?? 'transaction'} — but what was the amount?",
         type: ChatMessageType.system,
       ));
       return;
@@ -699,6 +760,7 @@ class AppProvider extends ChangeNotifier {
     if (tx.isExpense) {
       final weekSummary = _buildWeekSummary(tx.date);
       final tip = await _api.getCoachingTip(
+            safeToSpendBefore: safeToSpendBefore,
             safeToSpendToday: _budget?.safeToSpend ?? 0,
             runwayDays: _budget?.daysRemaining ?? 0,
             currentBalance: _budget?.remaining ?? 0,

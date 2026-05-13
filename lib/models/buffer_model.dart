@@ -1,5 +1,5 @@
-/// Money parked outside the daily “safe to spend” pace (auto: unspent daily slices; manual: edits).
-/// It is never added to safe-to-spend; budget math subtracts it from the pacing pool only.
+/// Money carried from days you spent less than your daily pace (plus manual edits).
+/// It is excluded from the pace split so it is not averaged again; add it to today’s pace for spending room.
 class BufferModel {
   final double amount;
   final DateTime lastUpdated;
