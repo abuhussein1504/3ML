@@ -3,7 +3,12 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../models/transaction_model.dart';
 import '../providers/app_provider.dart';
-import '../services/date_parser_service.dart';
+
+double? _parseAmountForSave(String raw, double? keepIfEmpty) {
+  final t = raw.trim().replaceAll(',', '').replaceAll(' ', '');
+  if (t.isEmpty) return keepIfEmpty;
+  return double.tryParse(t);
+}
 
 class TransactionTile extends StatelessWidget {
   final TransactionModel tx;
@@ -73,42 +78,34 @@ class TransactionTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 3),
-            child: Row(
-              children: [
-                if (showCategory)
-                  Flexible(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: c.bgCardAlt,
-                        borderRadius: BorderRadius.circular(6),
+          subtitle: showCategory
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: c.bgCardAlt,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${catSvc.iconFor(tx.categoryName)}  ${catSvc.getDisplayName(tx.categoryName)}',
+                            style: TextStyle(
+                                color: c.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        '${catSvc.iconFor(tx.categoryName)}  ${catSvc.getDisplayName(tx.categoryName)}',
-                        style: TextStyle(
-                            color: c.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                    ),
+                    ],
                   ),
-                if (showCategory) const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    DateParserService.format(tx.date),
-                    style: TextStyle(color: c.textMuted, fontSize: 11),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-          ),
+                )
+              : null,
           trailing: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 140),
             child: FittedBox(
@@ -283,11 +280,27 @@ class TransactionTile extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () async {
-                      final updated = tx.copyWith(
-                        item: itemCtrl.text.isNotEmpty ? itemCtrl.text : null,
-                        amount: double.tryParse(amountCtrl.text),
-                        categoryName: selectedCategory,
-                      );
+                      final amountToSave =
+                          _parseAmountForSave(amountCtrl.text, tx.amount);
+                      if (amountToSave == null) {
+                        if (ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            const SnackBar(
+                              content: Text('Enter a valid amount'),
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                      final updated = tx
+                          .copyWith(
+                            item: itemCtrl.text.trim().isNotEmpty
+                                ? itemCtrl.text.trim()
+                                : null,
+                            amount: amountToSave,
+                            categoryName: selectedCategory,
+                          )
+                          .withCategoryAsBudgetDriver();
                       await provider.updateTransaction(updated);
                       if (ctx.mounted) Navigator.pop(ctx);
                     },

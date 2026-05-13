@@ -294,22 +294,44 @@ class AppProvider extends ChangeNotifier {
     await _db.updateTransaction(tx);
     final idx = _transactions.indexWhere((t) => t.id == tx.id);
     if (idx != -1) _transactions[idx] = tx;
+    _syncEmbeddedTransactionInChat(tx);
     _recalcBudget();
     notifyListeners();
+    await _persistChatMessages();
+  }
+
+  /// Chat bubbles embed a [TransactionModel] copy; keep it in sync after edits.
+  void _syncEmbeddedTransactionInChat(TransactionModel tx) {
+    for (var i = 0; i < _chatMessages.length; i++) {
+      final m = _chatMessages[i];
+      if (m.transaction?.id != tx.id) continue;
+      _chatMessages[i] = ChatMessage(
+        id: m.id,
+        text: m.text,
+        type: m.type,
+        timestamp: m.timestamp,
+        transaction: tx,
+        lowConfidence: m.lowConfidence,
+      );
+    }
   }
 
   Future<void> deleteTransaction(String id) async {
     // Remove in-memory first so [Dismissible] is removed from the tree immediately
     // (see Flutter docs for onDismissed).
     _transactions.removeWhere((t) => t.id == id);
+    _chatMessages.removeWhere((m) => m.transaction?.id == id);
     _recalcBudget();
     notifyListeners();
     await _db.deleteTransaction(id);
+    await _persistChatMessages();
   }
 
   Future<void> moveTxCategory(String txId, String newCategory) async {
     final tx = _transactions.firstWhere((t) => t.id == txId);
-    await updateTransaction(tx.copyWith(categoryName: newCategory));
+    await updateTransaction(
+      tx.copyWith(categoryName: newCategory).withCategoryAsBudgetDriver(),
+    );
   }
 
   // ── Buffer Amount ──────────────────────────────────────────

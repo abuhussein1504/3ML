@@ -645,6 +645,18 @@ class _ChatBubble extends StatelessWidget {
       );
     }
 
+    final tx = message.transaction;
+    // Logged transactions: show only the editable tile (summary text is redundant).
+    if (tx != null && !isError) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12, right: 8),
+        child: TransactionTile(
+          tx: tx,
+          showCategory: true,
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, right: 40),
       child: Column(
@@ -671,14 +683,6 @@ class _ChatBubble extends StatelessWidget {
             ),
             child: _buildMessageContent(message.text, c),
           ),
-          if (message.transaction != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: TransactionTile(
-                tx: message.transaction!,
-                showCategory: true,
-              ),
-            ),
         ],
       ),
     );

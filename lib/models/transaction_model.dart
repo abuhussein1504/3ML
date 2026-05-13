@@ -58,6 +58,7 @@ class TransactionModel {
 
   TransactionModel copyWith({
     String? categoryName,
+    String? transactionType,
     double? amount,
     DateTime? date,
     String? intent,
@@ -67,7 +68,7 @@ class TransactionModel {
       TransactionModel(
         id: id,
         rawInput: rawInput,
-        transactionType: transactionType,
+        transactionType: transactionType ?? this.transactionType,
         intent: intent ?? this.intent,
         item: item ?? this.item,
         amount: amount ?? this.amount,
@@ -79,6 +80,39 @@ class TransactionModel {
         createdAt: createdAt,
         rawModelOutput: rawModelOutput,
       );
+
+  /// Use after the user picks a category so [transactionType] / [intent] match it
+  /// (income vs expense) and the budget recomputes correctly.
+  TransactionModel withCategoryAsBudgetDriver() {
+    final key = categoryName.trim().toLowerCase();
+    final String type;
+    final String? intentOut;
+    if (key == 'income') {
+      type = 'Income';
+      intentOut = 'income';
+    } else if (key == 'unknown' || key.isEmpty) {
+      type = 'Unknown';
+      intentOut = 'unknown';
+    } else {
+      type = 'Expense';
+      intentOut = key == 'investment' ? 'investment' : 'expense';
+    }
+    return TransactionModel(
+      id: id,
+      rawInput: rawInput,
+      transactionType: type,
+      intent: intentOut,
+      item: item,
+      amount: amount,
+      date: date,
+      dateExpression: dateExpression,
+      needsClarification: needsClarification,
+      confidenceScore: confidenceScore,
+      categoryName: categoryName,
+      createdAt: createdAt,
+      rawModelOutput: rawModelOutput,
+    );
+  }
 
   Map<String, dynamic> toMap() => {
         'id': id,
