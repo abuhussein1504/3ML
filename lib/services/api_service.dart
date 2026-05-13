@@ -5,31 +5,12 @@ import 'package:http/http.dart' as http;
 
 import '../models/transaction_model.dart';
 
-/// 3ML API Service — three models, two servers:
-///
-///  • Classifier  — local DistilBERT  → POST http://localhost:8000/classify
-///      Body:     {"text":"..."}
-///      Response: {"label":"transaction"|"conversation","confidence":0.97}
-///
-///  • EventParser — Colab ngrok FastAPI → POST {eventParserUrl}/parse
-///      Body:     {"text":"..."}
-///      Response: { intent, category, item, amount, date, confidence, needs_clarification }
-///                OR {"parseable": false}
-///
-///  • CoachChat   — Colab ngrok FastAPI
-///      POST {coachChatUrl}/coach — JSON body is the snapshot object itself (no wrapper).
-///      POST {coachChatUrl}/chat  — {"user_input":"...","user_context":"..."} (context is a string)
-///
-/// System prompts live on the server side — Flutter does NOT send them.
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal();
 
-  // ── Classifier: FastAPI on your PC (see backend/classifier_server.py) ───────
-  /// - Android **emulator** → `10.0.2.2` reaches the host PC.
-  /// - Physical phone on same Wi‑Fi → replace with your PC's LAN IP (e.g. `http://192.168.1.5:8000`).
-  /// - iOS simulator / desktop → loopback.
+  // Classifier (backend/classifier_server.py)
   static String get _classifierBaseUrl {
     if (kIsWeb) return 'http://localhost:8000';
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -38,7 +19,7 @@ class ApiService {
     return 'http://127.0.0.1:8000';
   }
 
-  // ── Remote Colab / ngrok — set full `https://….ngrok-free.app` URLs here ───
+  // API URLs
   String _eventParserUrl = 'https://9d31-34-21-153-46.ngrok-free.app';
   String _coachChatUrl = 'https://d238-34-125-76-14.ngrok-free.app';
 
@@ -50,9 +31,8 @@ class ApiService {
   String get eventParserUrl => _eventParserUrl;
   String get coachChatUrl => _coachChatUrl;
 
-  /// True only when a real http(s) URL has been configured.
   bool _isReady(String url) {
-    final clean = url.trim(); // FIX: removes invisible whitespace/newlines
+    final clean = url.trim();
     return clean.isNotEmpty &&
         (clean.startsWith('http://') || clean.startsWith('https://'));
   }
@@ -60,7 +40,6 @@ class ApiService {
   bool get isEventParserConfigured => _isReady(_eventParserUrl);
   bool get isCoachChatConfigured => _isReady(_coachChatUrl);
 
-  /// Trim and strip trailing slashes so `Uri.parse('$url/coach')` is valid.
   String _safeUrl(String url) =>
       url.trim().replaceAll(RegExp(r'/+$'), '');
 
@@ -70,16 +49,10 @@ class ApiService {
     'User-Agent': 'PostmanRuntime/7.32.3',
   };
 
-  /// Local classifier — give the model time to cold-start before heuristic fallback.
   static const Duration _classifierTimeout = Duration(seconds: 8);
-  /// Remote LLM endpoints need a longer budget than short health checks.
   static const Duration _remoteLlmTimeout = Duration(seconds: 45);
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // CLASSIFIER  (local DistilBERT — always localhost)
-  // POST http://localhost:8000/classify  {"text":"..."}
-  // ───────────────────────────────────────────────────────────────────────────
-
+  // CLASSIFIER  (local DistilBERT)
   Future<Map<String, dynamic>> classifyInput(String userInput) async {
     try {
       final response = await http
@@ -94,7 +67,6 @@ class ApiService {
         final data =
             jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
         final rawLabel = (data['label'] as String? ?? '').toLowerCase();
-        // Accept common training label variants from the HF export.
         final label = (rawLabel.contains('transaction') ||
                 rawLabel.contains('expense') ||
                 rawLabel == 'label_1' ||
@@ -111,12 +83,10 @@ class ApiService {
         };
       }
     } catch (_) {
-      // local server not running — fall through to heuristic
     }
     return _localClassify(userInput);
   }
 
-  /// Heuristic fallback when the local classifier server is not running.
   Map<String, dynamic> _localClassify(String input) {
     final lower = input.trim().toLowerCase();
     
@@ -204,11 +174,7 @@ class ApiService {
     return {'label': 'conversation', 'confidence': 1.0, 'lowConfidence': false};
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
   // EVENT PARSER  (Colab ngrok)
-  // POST {eventParserUrl}/parse  {"text":"..."}
-  // ───────────────────────────────────────────────────────────────────────────
-
   Future<Map<String, dynamic>?> parseTransaction(String userInput) async {
     print("parseTransaction CALLED");
 
@@ -259,14 +225,11 @@ class ApiService {
       return localParseTransaction(userInput);
     }
   }
-  // ───────────────────────────────────────────────────────────────────────────
-  // LOCAL PARSER — regex-based offline fallback (second option after remote)
-  // ───────────────────────────────────────────────────────────────────────────
 
+  // LOCAL PARSER — regex-based offline fallback (second option after remote)
   Map<String, dynamic>? localParseTransaction(String input) {
     final lower = input.trim().toLowerCase();
 
-    // Detect intent
     String intent = 'expense';
     if (RegExp(
             r'\b(salary|got paid|received|income|earned|paycheck|payment in)\b')
@@ -278,11 +241,9 @@ class ApiService {
       intent = 'investment';
     } else if (RegExp(r'\b(saved|saving|deposit|emergency fund)\b')
         .hasMatch(lower)) {
-      // Monthly savings goal is manual in Settings; treat as normal spend/outflow.
       intent = 'expense';
     }
 
-    // Amount: avoid matching only the first 3 digits of values like 5000 (old bug).
     final amountMatch = RegExp(
       r'(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)',
     ).firstMatch(lower);
@@ -291,7 +252,6 @@ class ApiService {
     final amount = double.tryParse(amountStr);
     if (amount == null || amount <= 0) return {'not_parseable': true};
 
-    // Extract item
     String cleaned = lower
         .replaceAll(RegExp(RegExp.escape(amountMatch.group(0)!)), ' ')
         .replaceAll(
@@ -304,7 +264,6 @@ class ApiService {
         ? cleaned[0].toUpperCase() + cleaned.substring(1)
         : null;
 
-    // Natural-language date string (same key as remote parser)
     String date = 'today';
     if (lower.contains('yesterday')) date = 'yesterday';
     final daysAgoMatch = RegExp(r'(\d+)\s+days?\s+ago').firstMatch(lower);
@@ -439,7 +398,6 @@ class ApiService {
     return 'other';
   }
 
-  /// Normalise Event Parser JSON to one map (same keys/order shape as the cloud API).
   Map<String, dynamic> _normalizeParserResponse(Map<String, dynamic> data) {
     String str(String key) {
       final v = data[key];
@@ -449,7 +407,6 @@ class ApiService {
       return t;
     }
 
-    // Accept PascalCase from older servers
     String pickStr(List<String> keys) {
       for (final k in keys) {
         final s = str(k);
@@ -505,11 +462,7 @@ class ApiService {
     };
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
   // COACH  (Colab ngrok)
-  // POST {coachChatUrl}/coach  — raw JSON body = snapshot (no "user_input" wrapper)
-  // ───────────────────────────────────────────────────────────────────────────
-
   Future<String?> getCoachingTip({
     required double safeToSpendBefore,
     required double safeToSpendToday,
@@ -572,11 +525,7 @@ class ApiService {
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
   // CHAT  (Colab ngrok)
-  // POST {coachChatUrl}/chat  {"user_context":"...","user_input":"..."}
-  // ───────────────────────────────────────────────────────────────────────────
-
   Future<String?> askChat({
     required String question,
     required String userContext,
@@ -624,12 +573,7 @@ class ApiService {
     }
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
   // Helpers
-  // ───────────────────────────────────────────────────────────────────────────
-
-  /// Pull a string from a JSON response body.
-  /// Tries each key in order; falls back to raw trimmed body.
   String? _extractStringResponse(String body, List<String> keys) {
     final trimmed = body.trim();
     try {
@@ -647,10 +591,7 @@ class ApiService {
     return trimmed.isNotEmpty ? trimmed : null;
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Offline fallbacks (used when Colab server is not reachable)
-  // ───────────────────────────────────────────────────────────────────────────
-
+  // Offline fallbacks (used when server is not reachable)
   String localCoachingTip({
     required double safeToSpend,
     required double amountSpent,
