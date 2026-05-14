@@ -16,7 +16,6 @@ class _SetupScreenState extends State<SetupScreen> {
   int _step = 0;
   bool _isLoading = false;
 
-  // Form values
   final _nameCtrl = TextEditingController();
   final _salaryCtrl = TextEditingController();
   final _billsCtrl = TextEditingController();
@@ -81,9 +80,8 @@ class _SetupScreenState extends State<SetupScreen> {
       name: _nameCtrl.text.trim(),
       salary: (double.tryParse(_salaryCtrl.text.trim()) ?? 0).toDouble(),
       payday: _selectedPayday,
-      fixedBills: (double.tryParse(_billsCtrl.text.trim().isEmpty
-                  ? '0'
-                  : _billsCtrl.text.trim()) ??
+      fixedBills: (double.tryParse(
+                  _billsCtrl.text.trim().isEmpty ? '0' : _billsCtrl.text.trim()) ??
               0.0)
           .toDouble(),
       savingsGoal: (double.tryParse(_savingsCtrl.text.trim().isEmpty
@@ -109,12 +107,6 @@ class _SetupScreenState extends State<SetupScreen> {
       case 1:
         final v = double.tryParse(_salaryCtrl.text.trim());
         return v != null && v > 0;
-      case 2:
-        return true;
-      case 3:
-        return true;
-      case 4:
-        return true;
       default:
         return true;
     }
@@ -122,20 +114,24 @@ class _SetupScreenState extends State<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.appColors; // ✅ theme-aware colors
+
     return Scaffold(
-      backgroundColor: AppTheme.bgPrimary,
+      backgroundColor: c.bgPrimary, // ✅ was AppTheme.bgPrimary (always dark)
       body: SafeArea(
         child: Column(
           children: [
-            // Progress bar
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: _back,
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: AppTheme.textSecondary, size: 18),
+                    icon: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: c.textSecondary, // ✅
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -143,7 +139,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: (_step + 1) / 5,
-                        backgroundColor: AppTheme.bgCard,
+                        backgroundColor: c.bgCard, // ✅
                         valueColor:
                             const AlwaysStoppedAnimation(AppTheme.primary),
                         minHeight: 4,
@@ -153,13 +149,11 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(width: 16),
                   Text(
                     '${_step + 1}/5',
-                    style: const TextStyle(
-                        color: AppTheme.textMuted, fontSize: 12),
+                    style: TextStyle(color: c.textMuted, fontSize: 12), // ✅
                   ),
                 ],
               ),
             ),
-            // Pages
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -172,7 +166,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       controller: _nameCtrl,
                       autofocus: true,
                       textCapitalization: TextCapitalization.words,
-                      style: const TextStyle(color: AppTheme.textPrimary),
+                      style: TextStyle(color: c.textPrimary), // ✅
                       decoration: const InputDecoration(hintText: 'e.g. Ahmed'),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -183,15 +177,15 @@ class _SetupScreenState extends State<SetupScreen> {
                     child: Column(
                       children: [
                         DropdownButtonFormField<String>(
-                          initialValue: _currency,
-                          dropdownColor: AppTheme.bgCard,
-                          style: const TextStyle(color: AppTheme.textPrimary),
+                          value: _currency,
+                          dropdownColor: c.bgCard, // ✅
+                          style: TextStyle(color: c.textPrimary), // ✅
                           decoration:
                               const InputDecoration(labelText: 'Currency'),
                           items: _currencies
-                              .map((c) => DropdownMenuItem(
-                                    value: c,
-                                    child: Text(c),
+                              .map((cur) => DropdownMenuItem(
+                                    value: cur,
+                                    child: Text(cur),
                                   ))
                               .toList(),
                           onChanged: (v) => setState(() => _currency = v!),
@@ -201,12 +195,11 @@ class _SetupScreenState extends State<SetupScreen> {
                           controller: _salaryCtrl,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
-                          style: const TextStyle(color: AppTheme.textPrimary),
+                          style: TextStyle(color: c.textPrimary), // ✅
                           decoration: InputDecoration(
                             hintText: 'e.g. 12000',
                             prefixText: '$_currency  ',
-                            prefixStyle:
-                                const TextStyle(color: AppTheme.textMuted),
+                            prefixStyle: TextStyle(color: c.textMuted), // ✅
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -229,11 +222,11 @@ class _SetupScreenState extends State<SetupScreen> {
                       controller: _billsCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: AppTheme.textPrimary),
+                      style: TextStyle(color: c.textPrimary), // ✅
                       decoration: InputDecoration(
                         hintText: 'e.g. 3000',
                         prefixText: '$_currency  ',
-                        prefixStyle: const TextStyle(color: AppTheme.textMuted),
+                        prefixStyle: TextStyle(color: c.textMuted), // ✅
                       ),
                     ),
                   ),
@@ -245,11 +238,11 @@ class _SetupScreenState extends State<SetupScreen> {
                       controller: _savingsCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: AppTheme.textPrimary),
+                      style: TextStyle(color: c.textPrimary), // ✅
                       decoration: InputDecoration(
                         hintText: 'e.g. 1000',
                         prefixText: '$_currency  ',
-                        prefixStyle: const TextStyle(color: AppTheme.textMuted),
+                        prefixStyle: TextStyle(color: c.textMuted), // ✅
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -257,7 +250,6 @@ class _SetupScreenState extends State<SetupScreen> {
                 ],
               ),
             ),
-            // CTA
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: SizedBox(
@@ -265,13 +257,12 @@ class _SetupScreenState extends State<SetupScreen> {
                 child: ElevatedButton(
                   onPressed: _canProceed ? _next : null,
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation(AppTheme.bgPrimary),
+                            valueColor: AlwaysStoppedAnimation(c.bgPrimary), // ✅
                           ),
                         )
                       : Text(_step == 4 ? "Let's Go!" : 'Continue'),
@@ -298,6 +289,7 @@ class _StepPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.appColors; // ✅
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -306,9 +298,14 @@ class _StepPage extends StatelessWidget {
           const SizedBox(height: 40),
           Text(title, style: Theme.of(context).textTheme.headlineLarge),
           const SizedBox(height: 10),
-          Text(subtitle,
-              style: const TextStyle(
-                  color: AppTheme.textSecondary, fontSize: 15, height: 1.5)),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: c.textSecondary, // ✅ was AppTheme.textSecondary (always dark)
+              fontSize: 15,
+              height: 1.5,
+            ),
+          ),
           const SizedBox(height: 36),
           child,
         ],
@@ -324,6 +321,7 @@ class _PaydayPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.appColors; // ✅
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -337,17 +335,17 @@ class _PaydayPicker extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primary : AppTheme.bgCard,
+              color: isSelected ? AppTheme.primary : c.bgCard, // ✅
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? AppTheme.primary : AppTheme.border,
+                color: isSelected ? AppTheme.primary : c.border, // ✅
               ),
             ),
             alignment: Alignment.center,
             child: Text(
               '$day',
               style: TextStyle(
-                color: isSelected ? AppTheme.bgPrimary : AppTheme.textSecondary,
+                color: isSelected ? c.bgPrimary : c.textSecondary, // ✅
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                 fontSize: 14,
               ),
