@@ -20,8 +20,8 @@ class ApiService {
   }
 
   // API URLs
-  String _eventParserUrl = 'https://9d31-34-21-153-46.ngrok-free.app';
-  String _coachChatUrl = 'https://d238-34-125-76-14.ngrok-free.app';
+  String _eventParserUrl = 'https://38b9-34-82-193-36.ngrok-free.app';
+  String _coachChatUrl = 'https://f166-136-118-119-66.ngrok-free.app';
 
   void setEventParserUrl(String url) =>
       _eventParserUrl = url.trim().replaceAll(RegExp(r'/+$'), '');

@@ -12,7 +12,6 @@ class HomeScreen extends StatelessWidget {
 
   void _showAllTransactions(BuildContext context, AppProvider _) {
     final c = context.appColors;
-    // List is read live inside the sheet so deletes rebuild immediately.
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -98,7 +97,6 @@ class HomeScreen extends StatelessWidget {
 
         return CustomScrollView(
           slivers: [
-            // App Bar
             SliverAppBar(
               backgroundColor: c.bgPrimary,
               floating: true,
@@ -153,18 +151,15 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Safe to Spend ────────────────────────
                     SafeToSpendCard(budget: budget, profile: profile),
 
                     const SizedBox(height: 16),
 
-                    // ── Budget Stats Row (expandable) ─────────
                     _StatsRow(
                         budget: budget, currency: currency, profile: profile),
 
                     const SizedBox(height: 16),
 
-                    // ── Payday Circle ────────────────────────
                     PaydayCircleWidget(
                       profile: profile,
                       remaining: budget.remaining,
@@ -174,7 +169,6 @@ class HomeScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
 
-                    // ── Recent Transactions ──────────────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -213,11 +207,10 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ── Expandable Stats Row ───────────────────────────────────────
 class _StatsRow extends StatelessWidget {
   final BudgetResult budget;
   final String currency;
-  final dynamic profile; // UserProfile
+  final dynamic profile;
   const _StatsRow(
       {required this.budget, required this.currency, required this.profile});
 
@@ -348,7 +341,6 @@ class _StatsRow extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
             Center(
               child: Container(
                 width: 40,
@@ -411,7 +403,6 @@ class _Row {
   const _Row(this.label, this.value);
 }
 
-// ── Stat Button (tap to expand) ────────────────────────────────
 class _StatButton extends StatelessWidget {
   final String label;
   final String shortValue;

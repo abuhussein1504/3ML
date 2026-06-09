@@ -26,7 +26,6 @@ class DatabaseService {
     );
   }
 
-  /// v2 adds [needsClarificationDetail] so we persist Item / Amount / Item & Amount from the parser.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute('''
@@ -76,8 +75,6 @@ class DatabaseService {
     ''');
   }
 
-  // ─── Transactions ──────────────────────────────────────────
-
   Future<void> insertTransaction(TransactionModel tx) async {
     final db = await database;
     await db.insert(
@@ -119,8 +116,6 @@ class DatabaseService {
     );
     return maps.map(TransactionModel.fromMap).toList();
   }
-
-  // ─── Suggestions ──────────────────────────────────────────
 
   Future<void> upsertSuggestion({
     required String item,
@@ -176,8 +171,6 @@ class DatabaseService {
     );
   }
 
-  // ─── Category Metadata ─────────────────────────────────────
-
   Future<void> saveCategoryName(String original, String displayName,
       {bool isUserCreated = false}) async {
     final db = await database;
@@ -209,8 +202,6 @@ class DatabaseService {
     );
     return rows.map((r) => r['original'] as String).toList();
   }
-
-  // ─── Helpers ──────────────────────────────────────────────
 
   Map<String, dynamic> _txToDbMap(TransactionModel tx) => {
     'id': tx.id,

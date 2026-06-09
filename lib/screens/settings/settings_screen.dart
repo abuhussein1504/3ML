@@ -1,4 +1,3 @@
-// Settings screen for 3ML App.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../app_theme.dart';
@@ -122,7 +121,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                     const SizedBox(height: 20),
 
-                    // ── Budget Summary ────────────────────────
                     _SectionHeader('Budget Summary', context: context),
                     Container(
                       decoration: AppTheme.glassCard(context),
@@ -188,7 +186,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                     const SizedBox(height: 20),
 
-                    // ── Privacy & Data ────────────────────────
                     _SectionHeader('Privacy & Data', context: context),
                     Container(
                       decoration: AppTheme.glassCard(context),
@@ -234,7 +231,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                     const SizedBox(height: 20),
 
-                    // ── About ─────────────────────────────────
                     _SectionHeader('About', context: context),
                     Container(
                       decoration: AppTheme.glassCard(context),
@@ -260,7 +256,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                     const SizedBox(height: 20),
 
-                    // ── Danger Zone ───────────────────────────
                     _SectionHeader('Danger Zone',
                         color: AppTheme.danger, context: context),
                     Container(
@@ -284,7 +279,6 @@ class _SettingsScreenState extends State<SettingsScreen>
 
                     const SizedBox(height: 40),
 
-                    // Footer
                     Center(
                       child: Column(
                         children: [
@@ -532,8 +526,6 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 }
-
-// ── Reusable widgets ───────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   final String title;

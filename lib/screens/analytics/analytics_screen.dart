@@ -35,7 +35,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         final currency = profile.currency;
         final allTx = provider.transactions.where((t) => t.isExpense).toList();
 
-        // Category breakdown sorted by amount
         final byCategory = Map.fromEntries(
           budget.byCategory.entries.toList()
             ..sort((a, b) => b.value.compareTo(a.value)),
@@ -75,7 +74,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Period Summary ────────────────────────
                     Container(
                       decoration: AppTheme.glassCard(context),
                       padding: const EdgeInsets.all(20),
@@ -106,7 +104,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Spend progress bar
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -153,7 +150,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
                     const SizedBox(height: 20),
 
-                    // ── Donut chart ───────────────────────────
                     if (byCategory.isNotEmpty) ...[
                       GestureDetector(
                         onTap: () => _showFullBreakdownSheet(
@@ -218,7 +214,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                                   if (_touchedIndex >= 0 &&
                                       _touchedIndex <
                                           byCategory.keys.length) ...[
-                                    // Hollow center — show which slice the user pressed.
                                     IgnorePointer(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
@@ -243,7 +238,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                                 ],
                               ),
                             ),
-                            // Legend — top 5
                             Padding(
                               padding: const EdgeInsets.only(
                                   right: 16, top: 12, bottom: 12),
@@ -295,7 +289,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                       const SizedBox(height: 20),
                     ],
 
-                    // ── Category breakdown ────────────────────
                     Text(
                       'Category Details',
                       style: TextStyle(
@@ -720,7 +713,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
           children: [
             Row(
               children: [
-                // Emoji field
                 SizedBox(
                   width: 60,
                   child: TextField(
@@ -741,7 +733,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Name field
                 Expanded(
                   child: TextField(
                     controller: nameCtrl,

@@ -136,7 +136,6 @@ class _PaydayCircleWidgetState extends State<PaydayCircleWidget>
                       : AppTheme.danger,
                 ),
                 const SizedBox(height: 8),
-                // Mini progress bar
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
@@ -235,7 +234,6 @@ class _CirclePainter extends CustomPainter {
         dotColor = AppTheme.primary;
         r = 5.5;
       } else {
-        // Color gradient for remaining days
         final fraction = (i - daysPassed) / (total - daysPassed).clamp(1, 31);
         dotColor = Color.lerp(
           AppTheme.primary,
@@ -248,7 +246,6 @@ class _CirclePainter extends CustomPainter {
         ..color = dotColor
         ..style = PaintingStyle.fill;
 
-      // Glow for today
       if (isToday) {
         final glowPaint = Paint()
           ..color = AppTheme.primary.withValues(alpha: 0.3)

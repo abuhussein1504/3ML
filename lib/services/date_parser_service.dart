@@ -1,15 +1,12 @@
 import 'package:intl/intl.dart';
 
 class DateParserService {
-  /// Convert a natural-language `date` string from the event parser into a [DateTime].
-  /// Falls back to [DateTime.now()] if parsing fails.
   static DateTime parse(String? expression) {
     if (expression == null || expression.isEmpty) return DateTime.now();
 
     final now = DateTime.now();
     final lower = expression.toLowerCase().trim();
 
-    // ── Simple keywords ────────────────────────────────
     switch (lower) {
       case 'today':
         return _dateOnly(now);
@@ -25,21 +22,18 @@ class DateParserService {
         return DateTime(now.year, now.month - 1, now.day);
     }
 
-    // ── "X days ago" / "X day ago" ────────────────────
     final daysAgo = RegExp(r'^(\d+)\s+days?\s+ago$').firstMatch(lower);
     if (daysAgo != null) {
       final n = int.tryParse(daysAgo.group(1)!) ?? 0;
       return _dateOnly(now.subtract(Duration(days: n)));
     }
 
-    // ── "X weeks ago" ─────────────────────────────────
     final weeksAgo = RegExp(r'^(\d+)\s+weeks?\s+ago$').firstMatch(lower);
     if (weeksAgo != null) {
       final n = int.tryParse(weeksAgo.group(1)!) ?? 0;
       return _dateOnly(now.subtract(Duration(days: n * 7)));
     }
 
-    // ── "last <weekday>" ──────────────────────────────
     final lastDay = RegExp(r'^last\s+(\w+)$').firstMatch(lower);
     if (lastDay != null) {
       final d = _weekdayIndex(lastDay.group(1)!);
@@ -50,7 +44,6 @@ class DateParserService {
       }
     }
 
-    // ── "this <weekday>" ──────────────────────────────
     final thisDay = RegExp(r'^this\s+(\w+)$').firstMatch(lower);
     if (thisDay != null) {
       final d = _weekdayIndex(thisDay.group(1)!);
@@ -60,7 +53,6 @@ class DateParserService {
       }
     }
 
-    // ── "on <weekday>" ────────────────────────────────
     final onDay = RegExp(r'^on\s+(\w+)$').firstMatch(lower);
     if (onDay != null) {
       final d = _weekdayIndex(onDay.group(1)!);
@@ -70,7 +62,6 @@ class DateParserService {
       }
     }
 
-    // ── Numeric formats: "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD" ──
     final numericDate = RegExp(
       r'^(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?$',
     ).firstMatch(lower);
@@ -81,21 +72,17 @@ class DateParserService {
       int year = yearStr != null
           ? (yearStr.length == 2 ? 2000 + int.parse(yearStr) : int.parse(yearStr))
           : now.year;
-      // Assume DD/MM when day ≤ 31 and month ≤ 12
       if (a <= 31 && b <= 12) return DateTime(year, b, a);
       if (b <= 31 && a <= 12) return DateTime(year, a, b);
     }
 
-    // ── ISO 8601: "2026-04-10" ────────────────────────
     try {
       return DateTime.parse(expression);
     } catch (_) {}
 
-    // ── "April 10", "10 April", "Apr 10" ─────────────
     final monthName = _parseMonthNamed(lower, now.year);
     if (monthName != null) return monthName;
 
-    // Fallback
     return _dateOnly(now);
   }
 
@@ -124,12 +111,10 @@ class DateParserService {
   };
 
   static DateTime? _parseMonthNamed(String lower, int currentYear) {
-    // "april 10" or "10 april"
     for (final entry in _monthMap.entries) {
       final monthWord = entry.key;
       final monthNum = entry.value;
 
-      // "monthName day"
       final r1 = RegExp(r'^' + monthWord + r'\s+(\d{1,2})(?:\s+(\d{4}))?$')
           .firstMatch(lower);
       if (r1 != null) {
@@ -138,7 +123,6 @@ class DateParserService {
         return DateTime(year, monthNum, day);
       }
 
-      // "day monthName"
       final r2 = RegExp(r'^(\d{1,2})\s+' + monthWord + r'(?:\s+(\d{4}))?$')
           .firstMatch(lower);
       if (r2 != null) {
@@ -150,7 +134,6 @@ class DateParserService {
     return null;
   }
 
-  /// Format a DateTime as a human-friendly string
   static String format(DateTime dt, {bool includeYear = false}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

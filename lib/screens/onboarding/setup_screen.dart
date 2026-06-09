@@ -114,10 +114,10 @@ class _SetupScreenState extends State<SetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.appColors; // ✅ theme-aware colors
+    final c = context.appColors; 
 
     return Scaffold(
-      backgroundColor: c.bgPrimary, // ✅ was AppTheme.bgPrimary (always dark)
+      backgroundColor: c.bgPrimary,
       body: SafeArea(
         child: Column(
           children: [
@@ -129,7 +129,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     onPressed: _back,
                     icon: Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: c.textSecondary, // ✅
+                      color: c.textSecondary,
                       size: 18,
                     ),
                   ),
@@ -139,7 +139,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: (_step + 1) / 5,
-                        backgroundColor: c.bgCard, // ✅
+                        backgroundColor: c.bgCard, 
                         valueColor:
                             const AlwaysStoppedAnimation(AppTheme.primary),
                         minHeight: 4,
@@ -149,7 +149,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(width: 16),
                   Text(
                     '${_step + 1}/5',
-                    style: TextStyle(color: c.textMuted, fontSize: 12), // ✅
+                    style: TextStyle(color: c.textMuted, fontSize: 12),
                   ),
                 ],
               ),
@@ -178,8 +178,8 @@ class _SetupScreenState extends State<SetupScreen> {
                       children: [
                         DropdownButtonFormField<String>(
                           value: _currency,
-                          dropdownColor: c.bgCard, // ✅
-                          style: TextStyle(color: c.textPrimary), // ✅
+                          dropdownColor: c.bgCard, 
+                          style: TextStyle(color: c.textPrimary), 
                           decoration:
                               const InputDecoration(labelText: 'Currency'),
                           items: _currencies
@@ -195,11 +195,11 @@ class _SetupScreenState extends State<SetupScreen> {
                           controller: _salaryCtrl,
                           keyboardType: const TextInputType.numberWithOptions(
                               decimal: true),
-                          style: TextStyle(color: c.textPrimary), // ✅
+                          style: TextStyle(color: c.textPrimary), 
                           decoration: InputDecoration(
                             hintText: 'e.g. 12000',
                             prefixText: '$_currency  ',
-                            prefixStyle: TextStyle(color: c.textMuted), // ✅
+                            prefixStyle: TextStyle(color: c.textMuted), 
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -222,11 +222,11 @@ class _SetupScreenState extends State<SetupScreen> {
                       controller: _billsCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      style: TextStyle(color: c.textPrimary), // ✅
+                      style: TextStyle(color: c.textPrimary), 
                       decoration: InputDecoration(
                         hintText: 'e.g. 3000',
                         prefixText: '$_currency  ',
-                        prefixStyle: TextStyle(color: c.textMuted), // ✅
+                        prefixStyle: TextStyle(color: c.textMuted), 
                       ),
                     ),
                   ),
@@ -238,11 +238,11 @@ class _SetupScreenState extends State<SetupScreen> {
                       controller: _savingsCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      style: TextStyle(color: c.textPrimary), // ✅
+                      style: TextStyle(color: c.textPrimary), 
                       decoration: InputDecoration(
                         hintText: 'e.g. 1000',
                         prefixText: '$_currency  ',
-                        prefixStyle: TextStyle(color: c.textMuted), // ✅
+                        prefixStyle: TextStyle(color: c.textMuted), 
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
@@ -262,7 +262,7 @@ class _SetupScreenState extends State<SetupScreen> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(c.bgPrimary), // ✅
+                            valueColor: AlwaysStoppedAnimation(c.bgPrimary), 
                           ),
                         )
                       : Text(_step == 4 ? "Let's Go!" : 'Continue'),
@@ -289,7 +289,7 @@ class _StepPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.appColors; // ✅
+    final c = context.appColors; 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -301,7 +301,7 @@ class _StepPage extends StatelessWidget {
           Text(
             subtitle,
             style: TextStyle(
-              color: c.textSecondary, // ✅ was AppTheme.textSecondary (always dark)
+              color: c.textSecondary, 
               fontSize: 15,
               height: 1.5,
             ),
@@ -321,7 +321,7 @@ class _PaydayPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.appColors; // ✅
+    final c = context.appColors;
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -335,17 +335,17 @@ class _PaydayPicker extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              color: isSelected ? AppTheme.primary : c.bgCard, // ✅
+              color: isSelected ? AppTheme.primary : c.bgCard, 
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? AppTheme.primary : c.border, // ✅
+                color: isSelected ? AppTheme.primary : c.border, 
               ),
             ),
             alignment: Alignment.center,
             child: Text(
               '$day',
               style: TextStyle(
-                color: isSelected ? c.bgPrimary : c.textSecondary, // ✅
+                color: isSelected ? c.bgPrimary : c.textSecondary, 
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                 fontSize: 14,
               ),

@@ -5,11 +5,8 @@ class CategoryService {
   factory CategoryService() => _instance;
   CategoryService._internal();
 
-  // Custom category name overrides: original → user-defined
   final Map<String, String> _customNames = {};
-  // User-added categories
   final List<String> _userCategories = [];
-  // Custom emojis for user-added categories
   final Map<String, String> _userCategoryIcons = {};
 
   void setCustomName(String original, String custom) {
@@ -44,14 +41,11 @@ class CategoryService {
         ..._userCategories,
       ];
 
-  /// Find the best matching category for a given item string.
-  /// Returns 'Other' if no match found.
   String categorize({
     required String transactionType,
     String? item,
     String? intent,
   }) {
-    // Transaction type overrides
     if (transactionType == 'Income') return 'Income';
     if (transactionType == 'Investment') return 'Investment';
     if (transactionType == 'Unknown') return 'Unknown';
@@ -76,7 +70,6 @@ class CategoryService {
       for (final term in searchTerms) {
         for (final keyword in entry.value) {
           if (term == keyword) {
-            // Exact match → highest priority
             return entry.key;
           }
           if (term.contains(keyword) || keyword.contains(term)) {
@@ -92,11 +85,9 @@ class CategoryService {
     return bestCategory;
   }
 
-  /// Returns emoji icon for a category name
   String iconFor(String categoryName) =>
       _userCategoryIcons[categoryName] ?? categoryIcons[categoryName] ?? '🏷️';
 
-  /// Serialize / deserialize custom names for persistence
   Map<String, dynamic> toJson() => {
         'customNames': _customNames,
         'userCategories': _userCategories,

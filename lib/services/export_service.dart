@@ -10,15 +10,12 @@ class ExportService {
   factory ExportService() => _instance;
   ExportService._internal();
 
-  // ─── CSV Export ───────────────────────────────────────────
-
   Future<void> exportTransactionsCsv(
     List<TransactionModel> transactions,
     UserProfile profile,
   ) async {
     final buffer = StringBuffer();
 
-    // Header
     buffer.writeln(
       'ID,Raw Input,Transaction Type,Intent,Item,Amount,Date,'
       'Date Expression,Category,Confidence Score,Created At',
@@ -47,10 +44,6 @@ class ExportService {
     );
   }
 
-  // ─── Backup / Recovery Data Export ───────────────────────
-  /// Full backup including profile, all transaction fields,
-  /// raw user input (before_parser) and Model A output (after_parser).
-
   Future<void> exportRecoveryData(
     List<TransactionModel> transactions,
     UserProfile profile,
@@ -60,9 +53,7 @@ class ExportService {
       'exported_at': DateTime.now().toIso8601String(),
       'profile': profile.toJson(),
       'transactions': transactions.map((tx) => {
-        // Full restore fields
         ...tx.toMap(),
-        // Dataset fields: raw text and Model A output
         'before_parser': tx.rawInput,
         'after_parser': tx.rawModelOutput,
       }).toList(),
@@ -74,8 +65,6 @@ class ExportService {
       'application/json',
     );
   }
-
-  // ─── Recovery Data Import ─────────────────────────────────
 
   Future<RecoveryData?> parseRecoveryFile(String content) async {
     try {
@@ -95,8 +84,6 @@ class ExportService {
       return null;
     }
   }
-
-  // ─── Helpers ──────────────────────────────────────────────
 
   Future<void> _shareText(String content, String filename, String mimeType) async {
     final dir = await getTemporaryDirectory();

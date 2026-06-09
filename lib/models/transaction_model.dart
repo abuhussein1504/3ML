@@ -4,9 +4,6 @@ class TransactionModel {
   final String id;
   final String rawInput;
 
-  // From Model A
-  /// Income | Expense | Unknown (legacy DB rows may still say Savings & Investment;
-  /// [fromMap] maps those to Expense).
   final String transactionType;
   final String?
       intent; // expense | income | financial services | investment | unknown
@@ -15,14 +12,11 @@ class TransactionModel {
   final DateTime date;
   final String? dateExpression;
 
-  /// Event parser / API: NO | item | amount | item & amount
   final String needsClarification;
   final double confidenceScore;
 
-  // Categorization
   final String categoryName;
 
-  // Metadata
   final DateTime createdAt;
   final Map<String, dynamic>? rawModelOutput;
 
@@ -47,13 +41,11 @@ class TransactionModel {
   bool get isSavings => transactionType == 'Savings & Investment';
   bool get isUnknown => transactionType == 'Unknown';
 
-  /// True when the parser still needs a field from the user.
   bool get hasClarificationNeeded {
     final n = needsClarification.trim().toUpperCase();
     return n.isNotEmpty && n != 'NO' && n != 'FALSE';
   }
 
-  /// Legacy INTEGER column (1 = any clarification).
   int get needsClarificationAsInt => hasClarificationNeeded ? 1 : 0;
 
   TransactionModel copyWith({
@@ -81,8 +73,6 @@ class TransactionModel {
         rawModelOutput: rawModelOutput,
       );
 
-  /// Use after the user picks a category so [transactionType] / [intent] match it
-  /// (income vs expense) and the budget recomputes correctly.
   TransactionModel withCategoryAsBudgetDriver() {
     final key = categoryName.trim().toLowerCase();
     final String type;
@@ -153,7 +143,6 @@ class TransactionModel {
         rawModelOutput: _decodeRaw(map['rawModelOutput'] as String?),
       );
 
-  /// Prefer v2 TEXT column; fall back to legacy int; then raw model blob.
   static String _parseNeedsClarificationFromDb(Map<String, dynamic> map) {
     final detail = map['needsClarificationDetail'];
     if (detail is String && detail.trim().isNotEmpty) {
@@ -166,7 +155,6 @@ class TransactionModel {
     return 'NO';
   }
 
-  /// Normalises parser / UI variants to API values: NO | item | amount | item & amount
   static String normalizeClarificationLabel(String raw) =>
       _normalizeClarificationLabel(raw);
 
@@ -180,7 +168,6 @@ class TransactionModel {
     return 'NO';
   }
 
-  /// Build from Model A JSON (already normalised in [ApiService]).
   factory TransactionModel.fromModelA({
     required String id,
     required String rawInput,
@@ -225,8 +212,6 @@ class TransactionModel {
     );
   }
 
-  /// Legacy rows used [kLegacySavingsInvestmentType]; load as expense so
-  /// budgeting matches other spending (monthly savings goal stays in profile).
   static const String kLegacySavingsInvestmentType = 'Savings & Investment';
 
   static String _normalizeStoredTransactionType(String raw) {
@@ -240,7 +225,6 @@ class TransactionModel {
         return 'Income';
       case 'financial services':
       case 'investment':
-        // Counts like other expenses; category stays `investment` when applicable.
         return 'Expense';
       case 'unknown':
         return 'Unknown';

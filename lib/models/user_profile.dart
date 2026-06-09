@@ -19,12 +19,10 @@ class UserProfile {
 
   double get disposableIncome => salary - fixedBills - savingsGoal;
 
-  /// Last payday date (most recent occurrence before or on today)
   DateTime get lastPayday {
     final now = DateTime.now();
     DateTime candidate = DateTime(now.year, now.month, payday);
     if (candidate.isAfter(now)) {
-      // Payday hasn't hit this month yet → use last month
       final prev = DateTime(now.year, now.month - 1, 1);
       final lastDayPrev = DateTime(now.year, now.month, 0).day;
       final day = payday.clamp(1, lastDayPrev);
@@ -33,12 +31,10 @@ class UserProfile {
     return candidate;
   }
 
-  /// Next payday date
   DateTime get nextPayday {
     final now = DateTime.now();
     DateTime candidate = DateTime(now.year, now.month, payday);
     if (!candidate.isAfter(now)) {
-      // Payday already passed this month → next month
       final next = DateTime(now.year, now.month + 1, 1);
       final lastDayNext = DateTime(now.year, now.month + 2, 0).day;
       final day = payday.clamp(1, lastDayNext);

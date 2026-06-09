@@ -122,7 +122,6 @@ class _ChatScreenState extends State<ChatScreen>
           ),
           body: Column(
             children: [
-              // ── Messages ──────────────────────────────────
               Expanded(
                 child: messages.isEmpty
                     ? _EmptyChat(
@@ -145,7 +144,6 @@ class _ChatScreenState extends State<ChatScreen>
                       ),
               ),
 
-              // ── Inline suggestions panel (above input bar) ─
               if (hasSuggestions && _showSuggestionsPanel)
                 _SuggestionsPanel(
                   provider: provider,
@@ -155,7 +153,6 @@ class _ChatScreenState extends State<ChatScreen>
                   onClose: () => setState(() => _showSuggestionsPanel = false),
                 ),
 
-              // ── Hints bar (ABOVE input bar, animated) ─────
               AnimatedSize(
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeInOut,
@@ -175,7 +172,6 @@ class _ChatScreenState extends State<ChatScreen>
                     : const SizedBox.shrink(),
               ),
 
-              // ── Input bar ─────────────────────────────────
               Container(
                 decoration: BoxDecoration(
                   color: c.bgSecondary,
@@ -191,7 +187,6 @@ class _ChatScreenState extends State<ChatScreen>
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Text field
                     Expanded(
                       child: TextField(
                         controller: _inputCtrl,
@@ -216,7 +211,6 @@ class _ChatScreenState extends State<ChatScreen>
 
                     const SizedBox(width: 8),
 
-                    // ── Adaptive action button ─────────────────
                     _AdaptiveActionButton(
                       hasText: _hasText,
                       isProcessing: provider.isProcessing,
@@ -245,7 +239,6 @@ class _ChatScreenState extends State<ChatScreen>
 
 }
 
-// ── Hints Bar (now above input) ────────────────────────────────
 class _HintsBar extends StatelessWidget {
   final List<String> hints;
   final ValueChanged<String> onSelect;
@@ -315,7 +308,6 @@ class _HintsBar extends StatelessWidget {
   }
 }
 
-// ── Suggestions panel ──────────────────────────────────────────
 class _SuggestionsPanel extends StatelessWidget {
   final AppProvider provider;
   final String currency;
@@ -412,7 +404,6 @@ class _SuggestionsPanel extends StatelessWidget {
   }
 }
 
-// ── Adaptive action button ─────────────────────────────────────
 class _AdaptiveActionButton extends StatelessWidget {
   final bool hasText;
   final bool isProcessing;
@@ -510,7 +501,6 @@ class _AdaptiveActionButton extends StatelessWidget {
   }
 }
 
-// ── Chat bubble ────────────────────────────────────────────────
 class _ChatBubble extends StatelessWidget {
   final ChatMessage message;
   const _ChatBubble({required Key key, required this.message})
@@ -577,7 +567,6 @@ class _ChatBubble extends StatelessWidget {
       );
     }
 
-    // Arlo chatbot bubble — distinct style with purple/indigo accent
     if (isArlo) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 16, right: 20),
@@ -634,7 +623,6 @@ class _ChatBubble extends StatelessWidget {
     }
 
     final tx = message.transaction;
-    // Logged transactions: show only the editable tile (summary text is redundant).
     if (tx != null && !isError) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12, right: 8),
@@ -694,7 +682,6 @@ class _ChatBubble extends StatelessWidget {
   }
 }
 
-// ── Typing indicator ───────────────────────────────────────────
 class _TypingIndicator extends StatefulWidget {
   const _TypingIndicator();
   @override
@@ -763,7 +750,6 @@ class _TypingIndicatorState extends State<_TypingIndicator>
   }
 }
 
-// ── Empty chat ─────────────────────────────────────────────────
 class _EmptyChat extends StatelessWidget {
   final VoidCallback onHintTap;
   const _EmptyChat({required this.onHintTap});

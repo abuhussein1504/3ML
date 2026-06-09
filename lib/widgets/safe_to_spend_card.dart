@@ -289,7 +289,6 @@ class SafeToSpendCard extends StatelessWidget {
   }
 }
 
-// ── Buffer Row widget ──────────────────────────────────────────
 class _BufferRow extends StatelessWidget {
   final double bufferAmount;
   final String currency;

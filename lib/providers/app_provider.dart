@@ -1,4 +1,3 @@
-// App provider for 3ML App — central state: profile, transactions, budget math, chat, buffer, theme.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -25,7 +24,6 @@ class ChatMessage {
   final DateTime timestamp;
   final TransactionModel? transaction;
 
-  /// True when the classifier was uncertain (confidence < 0.90).
   final bool lowConfidence;
 
   ChatMessage({
@@ -38,7 +36,6 @@ class ChatMessage {
   })  : id = id ?? const Uuid().v4(),
         timestamp = timestamp ?? DateTime.now();
 
-  /// Persisted to disk so closing the app does not wipe the conversation.
   Map<String, dynamic> toJson() => {
         'id': id,
         'text': text,
@@ -79,7 +76,6 @@ class AppProvider extends ChangeNotifier {
   final _catSvc = CategoryService();
   final _uuid = const Uuid();
 
-  // ── State ──────────────────────────────────────────────────
   bool _isInitialized = false;
   bool _isOnboarded = false;
   UserProfile? _profile;
@@ -91,18 +87,13 @@ class AppProvider extends ChangeNotifier {
   bool _showSuggestions = true;
   List<Map<String, dynamic>> _suggestions = [];
   ThemeMode _themeMode = ThemeMode.dark;
-  /// After install, user picks light/dark on the combined welcome screen ([needsThemeChoice]).
   bool _themeFirstChoiceDone = false;
 
-  /// Last coach-mode tip shown after an expense; chat mode sends this to `/chat` for continuity.
   String? _lastCoachMessage;
 
   static const _kChatMessagesJson = 'chat_messages_v1';
-  /// First calendar day not yet credited with unspent daily STS (ISO date).
-  /// Bumped to v2 so installs that stored `today` and never rolled no longer skip yesterday.
   static const _kBufferNextCreditDay = 'buffer_next_credit_day_iso_v2';
 
-  // ── Getters ────────────────────────────────────────────────
   bool get isInitialized => _isInitialized;
   bool get isOnboarded => _isOnboarded;
   bool get needsThemeChoice =>
@@ -122,7 +113,6 @@ class AppProvider extends ChangeNotifier {
   List<TransactionModel> get recentTransactions =>
       _transactions.where((t) => !t.isUnknown).take(10).toList();
 
-  // ── Initialization ─────────────────────────────────────────
   Future<void> initialize() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -185,7 +175,6 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  /// Persists theme from the welcome screen (see [needsThemeChoice]).
   Future<void> completeThemeSelection(ThemeMode mode) async {
     _themeMode = mode;
     _themeFirstChoiceDone = true;
@@ -213,7 +202,6 @@ class AppProvider extends ChangeNotifier {
     ));
   }
 
-  // ── Onboarding ─────────────────────────────────────────────
   Future<void> completeOnboarding(UserProfile profile) async {
     _profile = profile;
     _isOnboarded = true;

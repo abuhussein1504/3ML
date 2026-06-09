@@ -1,5 +1,3 @@
-/// Money carried from days you spent less than your daily pace (plus manual edits).
-/// It is excluded from the pace split so it is not averaged again; add it to today’s pace for spending room.
 class BufferModel {
   final double amount;
   final DateTime lastUpdated;

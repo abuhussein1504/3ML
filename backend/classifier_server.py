@@ -1,9 +1,3 @@
-# 3ML Classifier — Local FastAPI server
-#
-# Loads the DistilBERT sequence classifier from disk and exposes POST /classify.
-# Run from repo root:  python backend/classifier_server.py
-# Default URL from the Flutter app: http://127.0.0.1:8000 (Android emulator: http://10.0.2.2:8000)
-
 from __future__ import annotations
 
 import os
@@ -17,14 +11,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-# Model directory: env override, else repo sibling classifier/3ml-classifier-distilbert
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_MODEL = _REPO_ROOT / "classifier" / "3ml-classifier-distilbert"
 MODEL_PATH = Path(os.environ.get("M3L_CLASSIFIER_MODEL", str(_DEFAULT_MODEL))).resolve()
 
 clf_tokenizer = None
 clf_model = None
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -70,15 +62,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 class ClassifyRequest(BaseModel):
     text: str = Field(..., min_length=1, description="User utterance to classify")
-
 
 @app.get("/health")
 def health():
     return {"status": "ok", "model": "distilbert-classifier", "path": str(MODEL_PATH)}
-
 
 @app.post("/classify")
 def classify(req: ClassifyRequest):
@@ -108,7 +97,6 @@ def classify(req: ClassifyRequest):
     label = "transaction" if is_tx else "conversation"
 
     return {"label": label, "confidence": confidence, "text": req.text}
-
 
 if __name__ == "__main__":
     import uvicorn

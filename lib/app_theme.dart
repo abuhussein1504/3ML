@@ -1,8 +1,5 @@
-// app_theme.dart
 import 'package:flutter/material.dart';
 
-// ── AppColors ThemeExtension ──────────────────────────────────────
-// Use context.appColors.fieldName in every widget instead of AppTheme.* consts.
 class AppColors extends ThemeExtension<AppColors> {
   final Color bgPrimary;
   final Color bgSecondary;
@@ -71,7 +68,6 @@ class AppColors extends ThemeExtension<AppColors> {
     );
   }
 
-  // Dark token set
   static const dark = AppColors(
     bgPrimary:    Color(0xFF080C1A),
     bgSecondary:  Color(0xFF0F1628),
@@ -85,8 +81,6 @@ class AppColors extends ThemeExtension<AppColors> {
     inputFill:    Color(0xFF141D35),
   );
 
-  // Light token set
-  // Light palette: slightly stronger body/muted tones so labels stay readable on white cards.
   static const light = AppColors(
     bgPrimary:    Color(0xFFF0F2FA),
     bgSecondary:  Color(0xFFE8ECF6),
@@ -106,9 +100,7 @@ extension AppColorsX on BuildContext {
       Theme.of(this).extension<AppColors>() ?? AppColors.dark;
 }
 
-// ── AppTheme ──────────────────────────────────────────────────────
 class AppTheme {
-  // ─── Shared colors (same in both themes) ───────────────────
   static const Color primary     = Color(0xFF00D4A1);
   static const Color primaryDark = Color(0xFF009E78);
   static const Color accent      = Color(0xFF7C6FFF);
@@ -116,7 +108,6 @@ class AppTheme {
   static const Color warning     = Color(0xFFFFB547);
   static const Color success     = Color(0xFF00D4A1);
 
-  // ─── Legacy static consts (kept for backward compat — dark values) ─
   static const Color bgPrimary   = Color(0xFF080C1A);
   static const Color bgSecondary = Color(0xFF0F1628);
   static const Color bgCard      = Color(0xFF141D35);
@@ -127,7 +118,6 @@ class AppTheme {
   static const Color border      = Color(0xFF1E2D50);
   static const Color borderLight = Color(0xFF2A3A60);
 
-  // ─── Gradients ─────────────────────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [Color(0xFF00D4A1), Color(0xFF00A8FF)],
     begin: Alignment.topLeft,
@@ -152,7 +142,6 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
-  // ─── Day Colors for Payday Circle ──────────────────────────
   static const List<Color> dayColors = [
     Color(0xFF00D4A1),
     Color(0xFF00C4F0),
@@ -351,7 +340,6 @@ class AppTheme {
     ),
   );
 
-  // ─── Context-aware helpers ─────────────────────────────────
   static BoxDecoration glassCard(BuildContext? context, {double radius = 20, Color? borderColor}) {
     final c = context?.appColors ?? AppColors.dark;
     return BoxDecoration(
@@ -372,7 +360,6 @@ class AppTheme {
     );
   }
 
-  // Legacy helpers (no context) — always use dark theme values
   static BoxDecoration glassCardLegacy({double radius = 20, Color? borderColor}) =>
       BoxDecoration(
         color: bgCard,
