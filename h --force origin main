@@ -1,0 +1,17 @@
+[33m271c902[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mabuhussein1504/main[m[33m, [m[1;31mabuhussein1504/HEAD[m[33m)[m HEAD@{0}: checkout: moving from 53c0e82b800c9bbc73132ce11bc183ace44968b3 to main
+[33m53c0e82[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{1}: rebase: fast-forward
+[33mb7e09cd[m HEAD@{2}: rebase (start): checkout b7e09cd8caad3c00e1abe08a39885c7af23db9af
+[33m271c902[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mabuhussein1504/main[m[33m, [m[1;31mabuhussein1504/HEAD[m[33m)[m HEAD@{3}: commit: FINALLYgit add .!
+[33mcd51873[m HEAD@{4}: checkout: moving from master to main
+[33mf04aafe[m[33m ([m[1;31morigin/master[m[33m, [m[1;31mabuhussein1504/master[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{5}: checkout: moving from main to master
+[33mcd51873[m HEAD@{6}: checkout: moving from main to main
+[33mcd51873[m HEAD@{7}: commit: theme edit
+[33m53c1e20[m HEAD@{8}: checkout: moving from master to main
+[33mf04aafe[m[33m ([m[1;31morigin/master[m[33m, [m[1;31mabuhussein1504/master[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{9}: checkout: moving from main to master
+[33m53c1e20[m HEAD@{10}: checkout: moving from master to main
+[33mf04aafe[m[33m ([m[1;31morigin/master[m[33m, [m[1;31mabuhussein1504/master[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{11}: checkout: moving from main to master
+[33m53c1e20[m HEAD@{12}: checkout: moving from master to main
+[33mf04aafe[m[33m ([m[1;31morigin/master[m[33m, [m[1;31mabuhussein1504/master[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{13}: checkout: moving from the_new_branch to master
+[33m2cf0020[m[33m ([m[1;31mabuhussein1504/the_new_branch[m[33m, [m[1;32mthe_new_branch[m[33m)[m HEAD@{14}: commit: test 2
+[33mf04aafe[m[33m ([m[1;31morigin/master[m[33m, [m[1;31mabuhussein1504/master[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{15}: checkout: moving from master to the_new_branch
+[33mf04aafe[m[33m ([m[1;31morigin/master[m[33m, [m[1;31mabuhussein1504/master[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{16}: commit (initial): ALHAMDULILLAH
