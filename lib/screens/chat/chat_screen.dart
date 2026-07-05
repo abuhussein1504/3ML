@@ -798,3 +798,4 @@ class _EmptyChat extends StatelessWidget {
     );
   }
 }
+

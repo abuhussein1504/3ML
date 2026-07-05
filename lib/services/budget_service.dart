@@ -134,3 +134,4 @@ class JustificationLine {
   const JustificationLine(this.label, this.value,
       {this.bold = false, this.sub = false});
 }
+

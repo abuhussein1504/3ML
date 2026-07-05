@@ -268,3 +268,4 @@ class _CirclePainter extends CustomPainter {
   bool shouldRepaint(_CirclePainter oldDelegate) =>
       oldDelegate.totalDays != totalDays || oldDelegate.daysPassed != daysPassed;
 }
+

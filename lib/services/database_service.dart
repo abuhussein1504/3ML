@@ -229,3 +229,4 @@ class DatabaseService {
     await db.delete('category_metadata');
   }
 }
+

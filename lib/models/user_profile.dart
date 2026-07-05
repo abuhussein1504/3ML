@@ -93,3 +93,4 @@ class UserProfile {
         createdAt: createdAt,
       );
 }
+

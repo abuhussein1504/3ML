@@ -8,3 +8,4 @@ Future<void> initSqlite() async {
   _sqliteInitDone = true;
   databaseFactory = databaseFactoryFfiWeb;
 }
+

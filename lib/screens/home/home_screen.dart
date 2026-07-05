@@ -496,3 +496,4 @@ class _EmptyTransactions extends StatelessWidget {
     );
   }
 }
+

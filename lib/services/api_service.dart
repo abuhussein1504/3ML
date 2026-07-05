@@ -615,3 +615,4 @@ class ApiService {
         "In the meantime: focus on essentials, track every purchase, and review your weekly summary.";
   }
 }
+

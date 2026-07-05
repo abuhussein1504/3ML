@@ -113,3 +113,4 @@ class RecoveryData {
   final List<TransactionModel> transactions;
   const RecoveryData({required this.profile, required this.transactions});
 }
+

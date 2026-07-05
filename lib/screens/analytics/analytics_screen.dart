@@ -804,3 +804,4 @@ class _Divider extends StatelessWidget {
     return Container(width: 1, height: 36, color: context.appColors.border);
   }
 }
+

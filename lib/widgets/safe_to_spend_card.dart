@@ -460,3 +460,4 @@ class _BufferRow extends StatelessWidget {
     );
   }
 }
+

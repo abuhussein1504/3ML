@@ -25,3 +25,4 @@ class BufferModel {
   factory BufferModel.empty() =>
       BufferModel(amount: 0.0, lastUpdated: DateTime.now());
 }
+

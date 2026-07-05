@@ -260,3 +260,4 @@ class TransactionModel {
   static String _encodeMap(Map<String, dynamic> m) =>
       m.entries.map((e) => '${e.key}=${e.value}').join('||');
 }
+

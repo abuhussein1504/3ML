@@ -374,3 +374,4 @@ class AppTheme {
         border: Border.all(color: primary.withValues(alpha: 0.25), width: 1),
       );
 }
+

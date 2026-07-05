@@ -20,3 +20,4 @@ Future<void> initSqlite() async {
       databaseFactory = databaseFactorySqflitePlugin;
   }
 }
+
